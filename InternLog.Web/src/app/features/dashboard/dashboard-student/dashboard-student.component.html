@@ -1,0 +1,115 @@
+<div class="page-container">
+  <!-- Header -->
+  <div class="page-header">
+    <h2>แดชบอร์ดนักศึกษา</h2>
+    <p>ข้อมูลภาพรวมการฝึกงานของคุณ</p>
+  </div>
+
+  <!-- Row 1: Stat Cards -->
+  <div class="stats-grid">
+    <div class="card stat-card">
+      <div class="stat-icon">📅</div>
+      <div class="stat-content">
+        <h3>ฝึกแล้ว</h3>
+        <div class="stat-value">{{ stats.workedDays }} / {{ stats.totalDays }} <span class="unit">วัน</span></div>
+        <div class="progress-bar">
+          <div class="progress-fill" [style.width.%]="(stats.workedDays / stats.totalDays) * 100"></div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card stat-card">
+      <div class="stat-icon">⏱</div>
+      <div class="stat-content">
+        <h3>ชั่วโมงสะสม</h3>
+        <div class="stat-value">{{ stats.totalHours }} <span class="unit">ชม.</span></div>
+      </div>
+    </div>
+    
+    <div class="card stat-card">
+      <div class="stat-icon">🏖</div>
+      <div class="stat-content">
+        <h3>วันลาคงเหลือ</h3>
+        <div class="stat-value">{{ stats.leavesLeft }} <span class="unit">วัน</span></div>
+      </div>
+    </div>
+    
+    <div class="card stat-card clickable" routerLink="/visits">
+      <div class="stat-icon">🧑</div>
+      <div class="stat-content">
+        <h3>การนิเทศถัดไป</h3>
+        <div class="stat-value text-sm">{{ stats.nextVisit }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2: Attendance & Notifications -->
+  <div class="row-2">
+    <!-- Attendance Card (8 cols) -->
+    <div class="card attendance-card col-8">
+      <div class="card-header">
+        <h3>ลงเวลาวันนี้ ({{ currentDate }})</h3>
+      </div>
+      <div class="attendance-content">
+        <div class="clock-display">{{ currentTime }}</div>
+        <div class="action-buttons">
+          <button class="btn-check-in" (click)="checkIn()">⬇ ลงเวลาเข้า</button>
+          <button class="btn-check-out" (click)="checkOut()">⬆ ลงเวลาออก</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notifications Card (4 cols) -->
+    <div class="card notif-card col-4">
+      <div class="card-header">
+        <h3>การแจ้งเตือนล่าสุด</h3>
+        <a routerLink="/notifications" class="view-all">ดูทั้งหมด</a>
+      </div>
+      <div class="notif-list">
+        <div class="notif-item" *ngFor="let notif of notifications">
+          <div class="notif-icon">{{ notif.icon }}</div>
+          <div class="notif-content">
+            <p>{{ notif.text }}</p>
+            <span class="notif-time">{{ notif.time }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 3: Recent Work Logs -->
+  <div class="card table-card">
+    <div class="card-header">
+      <h3>บันทึกงานล่าสุด</h3>
+      <a routerLink="/work-logs" class="view-all">ดูประวัติทั้งหมด</a>
+    </div>
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>วันที่</th>
+            <th>ชื่องาน</th>
+            <th>ชม.</th>
+            <th>สถานะ</th>
+            <th>การจัดการ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let log of recentLogs">
+            <td>{{ log.date }}</td>
+            <td>{{ log.title }}</td>
+            <td>{{ log.hours }}</td>
+            <td>
+              <span class="badge" [ngClass]="getStatusBadgeClass(log.status)">
+                {{ getStatusText(log.status) }}
+              </span>
+            </td>
+            <td>
+              <button class="btn-icon" title="ดูรายละเอียด">👁</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

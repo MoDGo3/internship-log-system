@@ -1,0 +1,118 @@
+<div class="page-container">
+  <div class="page-header">
+    <h2>จัดการวันลา</h2>
+    <p>ดูโควตาวันลาและยื่นคำขอลาได้ที่นี่</p>
+  </div>
+
+  <div class="row-top">
+    <!-- Left: Quota Cards (8 cols) -->
+    <div class="col-8 quota-section">
+      <h3 class="section-title">โควตาวันลาของคุณ</h3>
+      <div class="quota-cards-wrapper">
+        <div class="card quota-card" *ngFor="let q of quotas">
+          <div class="quota-header">
+            <div class="quota-icon">📊</div>
+            <div class="quota-info">
+              <h4>{{ q.type }}</h4>
+              <p>ใช้ไป {{ q.used }} / {{ q.total }} วัน</p>
+            </div>
+            <div class="quota-remain">
+              เหลือ <strong>{{ q.total - q.used }}</strong> วัน
+            </div>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" [ngClass]="q.color" [style.width.%]="getQuotaPercentage(q.used, q.total)"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Leave Form (4 cols) -->
+    <div class="col-4">
+      <div class="card form-card">
+        <div class="card-header">
+          <h3>ยื่นคำขอลา</h3>
+        </div>
+        
+        <form [formGroup]="leaveForm" (ngSubmit)="onSubmit()" class="leave-form">
+          <div class="form-group">
+            <label for="leaveType">ประเภทการลา</label>
+            <select id="leaveType" formControlName="leaveType" class="form-control" [class.is-invalid]="leaveForm.get('leaveType')?.invalid && leaveForm.get('leaveType')?.touched">
+              <option value="">-- เลือกประเภทการลา --</option>
+              <option value="ลากิจ">ลากิจ</option>
+              <option value="ลาป่วย">ลาป่วย</option>
+              <option value="ลาพักร้อน">ลาพักร้อน</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="startDate">ตั้งแต่วันที่</label>
+              <input type="date" id="startDate" formControlName="startDate" class="form-control" [class.is-invalid]="leaveForm.get('startDate')?.invalid && leaveForm.get('startDate')?.touched">
+            </div>
+            <div class="form-group flex-1">
+              <label for="endDate">ถึงวันที่</label>
+              <input type="date" id="endDate" formControlName="endDate" class="form-control" [class.is-invalid]="leaveForm.get('endDate')?.invalid && leaveForm.get('endDate')?.touched">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="reason">เหตุผลการลา</label>
+            <textarea id="reason" formControlName="reason" class="form-control" rows="3" [class.is-invalid]="leaveForm.get('reason')?.invalid && leaveForm.get('reason')?.touched"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>ไฟล์แนบ (ถ้ามี)</label>
+            <div class="file-upload-zone">
+              <div class="upload-icon">📎</div>
+              <p>ลากไฟล์มาวางที่นี่ หรือ <strong>คลิกเพื่อเลือกไฟล์</strong></p>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary" [disabled]="isLoading">
+            <span *ngIf="!isLoading">ส่งคำขอลา</span>
+            <span *ngIf="isLoading" class="spinner"></span>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom: History Table -->
+  <div class="card table-card">
+    <div class="card-header">
+      <h3>ประวัติคำขอลา</h3>
+    </div>
+    
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>วันที่ลา</th>
+            <th>ประเภท</th>
+            <th>จำนวนวัน</th>
+            <th>เหตุผล</th>
+            <th>สถานะ</th>
+            <th>การจัดการ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of history">
+            <td>{{ item.startDate | date:'dd/MM/yyyy' }} <span *ngIf="item.endDate && item.startDate !== item.endDate"> - {{ item.endDate | date:'dd/MM/yyyy' }}</span></td>
+            <td>{{ item.leaveType }}</td>
+            <td>-</td>
+            <td>{{ item.reason }}</td>
+            <td>
+              <span class="badge" [ngClass]="getStatusBadgeClass(item.status)">
+                {{ getStatusText(item.status) }}
+              </span>
+            </td>
+            <td>
+              <button class="btn-icon" title="ดูรายละเอียด">👁</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,54 @@
+<div class="page-container">
+  <div class="page-header space-between">
+    <div>
+      <h2>จัดการการฝึกงาน (จับคู่)</h2>
+      <p>จับคู่นักศึกษา สถานประกอบการ และอาจารย์นิเทศ</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-primary">+ จับคู่การฝึกใหม่</button>
+    </div>
+  </div>
+
+  <div class="card table-card">
+    <div class="filter-bar">
+      <input type="text" class="form-control search" placeholder="ค้นหานักศึกษา หรือบริษัท...">
+      <select class="form-control">
+        <option value="">ทุกภาคเรียน</option>
+        <option value="1/2569">1/2569</option>
+      </select>
+    </div>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>นักศึกษา</th>
+          <th>บริษัท</th>
+          <th>อาจารย์นิเทศ</th>
+          <th>พี่เลี้ยง</th>
+          <th>ภาคเรียน</th>
+          <th>ช่วงวัน</th>
+          <th>สถานะ</th>
+          <th>จัดการ</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of internships">
+          <td class="font-bold">{{ item.student }}</td>
+          <td>{{ item.company }}</td>
+          <td>{{ item.advisor }}</td>
+          <td>{{ item.mentor }}</td>
+          <td>{{ item.term }}</td>
+          <td class="text-secondary">{{ item.period }}</td>
+          <td>
+            <span class="chip" [ngClass]="getStatusClass(item.status)">{{ getStatusText(item.status) }}</span>
+          </td>
+          <td>
+            <div class="actions">
+              <button class="btn-icon">✏️</button>
+              <button class="btn-icon text-danger">🗑️</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

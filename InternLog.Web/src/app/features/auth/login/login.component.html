@@ -1,0 +1,93 @@
+<div class="login-layout">
+  <!-- Left Side: Branding -->
+  <div class="brand-section">
+    <div class="brand-content">
+      <div class="logo">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="48" height="48" rx="12" fill="white" fill-opacity="0.2"/>
+          <path d="M14 24L22 32L34 16" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h1>InternLog</h1>
+      </div>
+      <p class="tagline">ระบบจดบันทึกการฝึกงานที่ช่วยให้คุณจัดการเอกสารและการรายงานได้อย่างง่ายดาย</p>
+      
+      <!-- Placeholder for Illustration -->
+      <div class="illustration-placeholder">
+        <div class="mock-illustration"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Side: Login Form -->
+  <div class="form-section">
+    <div class="login-card">
+      <div class="card-header">
+        <h2>เข้าสู่ระบบ</h2>
+        <p>กรุณากรอกข้อมูลเพื่อเข้าใช้งานระบบ</p>
+      </div>
+
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+        
+        <!-- Error Message -->
+        <div class="error-alert" *ngIf="errorMessage">
+          {{ errorMessage }}
+        </div>
+
+        <!-- Email Field -->
+        <div class="form-group">
+          <label for="email">อีเมล</label>
+          <input 
+            type="email" 
+            id="email" 
+            formControlName="email" 
+            placeholder="name@example.com"
+            [class.is-invalid]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched"
+          >
+          <span class="error-text" *ngIf="loginForm.get('email')?.invalid && loginForm.get('email')?.touched">
+            กรุณากรอกอีเมลให้ถูกต้อง
+          </span>
+        </div>
+
+        <!-- Password Field -->
+        <div class="form-group">
+          <label for="password">รหัสผ่าน</label>
+          <div class="password-input-wrapper">
+            <input 
+              [type]="showPassword ? 'text' : 'password'" 
+              id="password" 
+              formControlName="password" 
+              placeholder="••••••••"
+              [class.is-invalid]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
+            >
+            <button type="button" class="toggle-password" (click)="togglePasswordVisibility()">
+              {{ showPassword ? 'ปิดตา' : 'เปิดตา' }}
+            </button>
+          </div>
+          <span class="error-text" *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
+            กรุณากรอกรหัสผ่าน
+          </span>
+        </div>
+
+        <!-- Remember Me & Forgot Password -->
+        <div class="form-actions-row">
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="rememberMe">
+            <span>จำฉันไว้ในระบบ</span>
+          </label>
+          <a routerLink="/forgot-password" class="forgot-link">ลืมรหัสผ่าน?</a>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="btn-primary" [disabled]="isLoading">
+          <span *ngIf="!isLoading">เข้าสู่ระบบ</span>
+          <span *ngIf="isLoading" class="spinner"></span>
+        </button>
+
+      </form>
+
+      <div class="card-footer">
+        ยังไม่มีบัญชีผู้ใช้? <a routerLink="/register">สมัครสมาชิก</a>
+      </div>
+    </div>
+  </div>
+</div>

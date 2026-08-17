@@ -1,0 +1,54 @@
+<div class="page-container">
+  <div class="page-header space-between">
+    <div>
+      <h2>การนิเทศนักศึกษา</h2>
+      <p>ประวัติและผลการนิเทศการฝึกงาน</p>
+    </div>
+    <!-- ปุ่มนี้จะเห็นเฉพาะ Role Advisor ในระบบจริง -->
+    <button class="btn-primary" (click)="addVisit()">+ บันทึกการนิเทศ</button>
+  </div>
+
+  <div class="card table-card">
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ครั้งที่</th>
+            <th>วันที่นิเทศ</th>
+            <th>อาจารย์ผู้นิเทศ</th>
+            <th>รูปแบบ</th>
+            <th>สรุปผลการนิเทศ</th>
+            <th>คะแนน</th>
+            <th>การจัดการ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let visit of visits">
+            <td>ครั้งที่ {{ visit.visitNo }}</td>
+            <td>{{ visit.dateFormatted || visit.visitDate }}</td>
+            <td>
+              <div class="user-info">
+                <div class="avatar">{{ visit.advisorName?.charAt(2) || 'อ' }}</div>
+                <span>{{ visit.advisorName }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="chip" [ngClass]="getFormatClass(visit.visitFormat)">{{ visit.visitFormat }}</span>
+            </td>
+            <td>{{ visit.summary || '-' }}</td>
+            <td>
+              <span class="font-bold text-primary">{{ visit.score !== null ? visit.score : '-' }}</span>
+            </td>
+            <td>
+              <button class="btn-sm btn-outline" (click)="viewDetails(visit)">ดูรายละเอียด</button>
+            </td>
+          </tr>
+          
+          <tr *ngIf="visits.length === 0">
+            <td colspan="7" class="empty-state">ไม่มีข้อมูลการนิเทศ</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

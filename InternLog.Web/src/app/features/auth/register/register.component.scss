@@ -1,0 +1,55 @@
+@import '../login/login.component.scss';
+
+.register-card {
+  max-width: 500px;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+  
+  .flex-1 {
+    flex: 1;
+  }
+}
+
+.password-strength {
+  margin-top: 4px;
+  
+  .strength-bars {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 4px;
+    
+    .bar {
+      height: 4px;
+      flex: 1;
+      background-color: #E5E7EB;
+      border-radius: 2px;
+      transition: background-color 0.3s;
+      
+      &.active {
+        &.danger { background-color: var(--danger); }
+        &.warning { background-color: var(--warning); }
+        &.info { background-color: var(--info); }
+        &.success { background-color: var(--success); }
+      }
+    }
+  }
+  
+  .strength-text {
+    font-size: 12px;
+    
+    &.c-danger { color: var(--danger); }
+    &.c-warning { color: var(--warning); }
+    &.c-info { color: var(--info); }
+    &.c-success { color: var(--success); }
+  }
+}
+
+@media (max-width: 768px) {
+  .form-row {
+    flex-direction: column;
+    gap: 24px;
+  }
+}

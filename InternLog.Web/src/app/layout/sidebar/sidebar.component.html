@@ -1,0 +1,63 @@
+<aside class="sidebar-container">
+  <div class="logo-area">
+    <h2 class="logo-text">InternLog</h2>
+  </div>
+  
+  <nav class="nav-menu">
+    <a routerLink="/dashboard" routerLinkActive="active" class="nav-item">
+      <span class="icon">🏠</span> แดชบอร์ด
+    </a>
+    <a routerLink="/attendance" routerLinkActive="active" class="nav-item">
+      <span class="icon">⏰</span> ลงเวลา
+    </a>
+    <a routerLink="/leaves" routerLinkActive="active" class="nav-item">
+      <span class="icon">🏖</span> วันลา
+    </a>
+    <a routerLink="/calendar" routerLinkActive="active" class="nav-item">
+      <span class="icon">📅</span> ปฏิทิน
+    </a>
+    <a routerLink="/work-logs" routerLinkActive="active" class="nav-item">
+      <span class="icon">📝</span> บันทึกงาน
+    </a>
+    <a routerLink="/tasks" routerLinkActive="active" class="nav-item">
+      <span class="icon">📋</span> งานมอบหมาย
+    </a>
+    <a routerLink="/visits" routerLinkActive="active" class="nav-item">
+      <span class="icon">🧑</span> การนิเทศ
+    </a>
+    <a routerLink="/chat" routerLinkActive="active" class="nav-item">
+      <span class="icon">💬</span> แชท
+    </a>
+    <a routerLink="/reports" routerLinkActive="active" class="nav-item">
+      <span class="icon">📊</span> รายงาน
+    </a>
+    <a routerLink="/evaluations" routerLinkActive="active" class="nav-item">
+      <span class="icon">⭐</span> ประเมินผล
+    </a>
+
+    <!-- Admin Section -->
+    <ng-container *ngIf="isAdmin()">
+      <div class="nav-divider"></div>
+      <div class="nav-section-title">ผู้ดูแลระบบ</div>
+      
+      <a routerLink="/admin/users" routerLinkActive="active" class="nav-item">
+        <span class="icon">👥</span> จัดการผู้ใช้งาน
+      </a>
+      <a routerLink="/admin/companies" routerLinkActive="active" class="nav-item">
+        <span class="icon">🏢</span> จัดการบริษัท
+      </a>
+      <a routerLink="/admin/internships" routerLinkActive="active" class="nav-item">
+        <span class="icon">🔗</span> จัดการจับคู่
+      </a>
+    </ng-container>
+  </nav>
+
+  <div class="nav-bottom">
+    <a routerLink="/profile" routerLinkActive="active" class="nav-item">
+      <span class="icon">⚙️</span> โปรไฟล์
+    </a>
+    <a (click)="logout()" class="nav-item logout-btn" style="cursor: pointer;">
+      <span class="icon">🚪</span> ออกจากระบบ
+    </a>
+  </div>
+</aside>

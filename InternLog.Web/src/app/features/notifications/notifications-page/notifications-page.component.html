@@ -1,0 +1,43 @@
+<div class="page-container">
+  <div class="page-header space-between">
+    <div>
+      <h2>การแจ้งเตือน</h2>
+      <p>อัปเดตความเคลื่อนไหวล่าสุด</p>
+    </div>
+    <button class="btn-outline" (click)="markAllAsRead()">อ่านทั้งหมด</button>
+  </div>
+
+  <div class="card">
+      <!-- Empty State -->
+      <div class="empty-state" *ngIf="notifications.length === 0">
+        <div class="empty-icon">🔔</div>
+        <h3>ไม่มีการแจ้งเตือน</h3>
+        <p>คุณอ่านการแจ้งเตือนทั้งหมดแล้ว</p>
+      </div>
+
+      <!-- Notification List -->
+      <div class="notification-list" *ngIf="notifications.length > 0">
+        
+        <div class="notification-item" 
+             *ngFor="let notif of notifications"
+             [class.unread]="!notif.isRead"
+             (click)="markAsRead(notif)">
+          
+          <div class="notif-icon">
+            {{ getIcon(notif.type) }}
+          </div>
+          
+          <div class="notif-content">
+            <p>{{ notif.message }}</p>
+            <span class="notif-time">{{ notif.time }}</span>
+          </div>
+          
+          <div class="notif-actions">
+            <button class="btn-icon text-danger" title="ลบ" (click)="deleteNotif(notif.notificationID, $event)">🗑</button>
+          </div>
+        </div>
+
+      </div>
+
+  </div>
+</div>

@@ -1,0 +1,84 @@
+<div class="page-container">
+  <!-- Row 1: Main Clock Card -->
+  <div class="card clock-card">
+    <div class="clock-display">
+      <span class="icon">⏱</span>
+      <div class="time">{{ currentTime }}</div>
+    </div>
+    <div class="date-display">วันนี้ {{ currentDate }}</div>
+
+    <div class="action-buttons">
+      <button class="btn-large btn-check-in" [disabled]="isCheckedIn" (click)="checkIn()">
+        ⬇ ลงเวลาเข้า
+      </button>
+      <button class="btn-large btn-check-out" [disabled]="!isCheckedIn" (click)="checkOut()">
+        ⬆ ลงเวลาออก
+      </button>
+    </div>
+  </div>
+
+  <!-- Row 2: Stat Cards -->
+  <div class="stats-grid">
+    <div class="card stat-card">
+      <div class="stat-content">
+        <h3>ชั่วโมงรวม (เดือนนี้)</h3>
+        <div class="stat-value">{{ stats.totalHours }} <span class="unit">ชม.</span></div>
+      </div>
+    </div>
+    <div class="card stat-card">
+      <div class="stat-content">
+        <h3>มาสาย</h3>
+        <div class="stat-value text-danger">{{ stats.lateCount }} <span class="unit">ครั้ง</span></div>
+      </div>
+    </div>
+    <div class="card stat-card">
+      <div class="stat-content">
+        <h3>ขาดงาน</h3>
+        <div class="stat-value text-secondary">{{ stats.absentCount }} <span class="unit">ครั้ง</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 3: History Table -->
+  <div class="card table-card">
+    <div class="card-header">
+      <h3>ประวัติการลงเวลา</h3>
+      <div class="filter-bar">
+        <select class="form-select" [(ngModel)]="selectedMonth" aria-label="กรองตามเดือน" title="กรองตามเดือน">
+          <option *ngFor="let m of months" [value]="m.value">{{ m.label }}</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>วันที่</th>
+            <th>เวลามา</th>
+            <th>เวลากลับ</th>
+            <th>รวม ชม.</th>
+            <th>สถานะ</th>
+            <th>การจัดการ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of history">
+            <td>{{ item.attDate }}</td>
+            <td>{{ item.checkInTime }}</td>
+            <td>{{ item.checkOutTime }}</td>
+            <td>{{ item.totalHours }}</td>
+            <td>
+              <span class="badge" [ngClass]="getStatusBadgeClass(item.status)">
+                {{ getStatusText(item.status) }}
+              </span>
+            </td>
+            <td>
+              <button class="btn-icon" title="ขอแก้ไขเวลา" (click)="requestEdit(item)">⚙️</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

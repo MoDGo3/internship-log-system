@@ -1,0 +1,97 @@
+<div class="preview-layout">
+  <!-- Topbar Header -->
+  <div class="preview-header">
+    <div class="header-left">
+      <button class="btn-icon" (click)="goBack()">←</button>
+      <h2>ตัวอย่างรายงานผลการฝึกงาน</h2>
+    </div>
+    <div class="header-right">
+      <button class="btn-primary" (click)="downloadPdf()">⬇ ดาวน์โหลด PDF</button>
+    </div>
+  </div>
+
+  <!-- Document Canvas -->
+  <div class="preview-canvas">
+    <div class="a4-document">
+      
+      <div class="doc-header">
+        <div class="logo-placeholder">โลโก้สถาบัน</div>
+        <div class="header-text">
+          <h1>แบบรายงานสรุปผลการฝึกงาน</h1>
+          <p>ประจำเดือน สิงหาคม 2569</p>
+        </div>
+      </div>
+
+      <div class="doc-section">
+        <h2>1. ข้อมูลนักศึกษา</h2>
+        <table class="doc-table">
+          <tr>
+            <td width="30%"><strong>ชื่อ-นามสกุล:</strong></td>
+            <td>นายสมชาย ใจดี</td>
+          </tr>
+          <tr>
+            <td><strong>รหัสนักศึกษา:</strong></td>
+            <td>641234567</td>
+          </tr>
+          <tr>
+            <td><strong>สถานที่ฝึกงาน:</strong></td>
+            <td>บริษัท เอบีซี เทคโนโลยี จำกัด</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="doc-section">
+        <h2>2. สรุปเวลาปฏิบัติงาน</h2>
+        <table class="doc-table bordered">
+          <thead>
+            <tr>
+              <th>สัปดาห์ที่</th>
+              <th>มาปกติ (วัน)</th>
+              <th>มาสาย (วัน)</th>
+              <th>ลา (วัน)</th>
+              <th>รวมชั่วโมง</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>1 (1-4 ส.ค.)</td><td>4</td><td>0</td><td>0</td><td>32</td></tr>
+            <tr><td>2 (7-11 ส.ค.)</td><td>4</td><td>1</td><td>0</td><td>40</td></tr>
+            <tr><td>3 (14-18 ส.ค.)</td><td>3</td><td>0</td><td>2</td><td>24</td></tr>
+            <tr><td>4 (21-25 ส.ค.)</td><td>5</td><td>0</td><td>0</td><td>40</td></tr>
+            <tr class="total-row">
+              <td><strong>รวม</strong></td>
+              <td><strong>16</strong></td>
+              <td><strong>1</strong></td>
+              <td><strong>2</strong></td>
+              <td><strong>136</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="doc-section">
+        <h2>3. สรุปรายละเอียดงานที่ปฏิบัติ (Highlight)</h2>
+        <ul>
+          <li>พัฒนาระบบ Frontend ด้วย Angular (45 ชม.)</li>
+          <li>ออกแบบ UI/UX ผ่าน Figma (20 ชม.)</li>
+          <li>ประชุมทีมและวางแผน Sprint (10 ชม.)</li>
+        </ul>
+      </div>
+
+      <div class="doc-signatures">
+        <div class="signature-box">
+          <div class="sign-line"></div>
+          <p>(นายสมชาย ใจดี)</p>
+          <p>นักศึกษาฝึกงาน</p>
+          <p>วันที่ ...../...../.....</p>
+        </div>
+        <div class="signature-box">
+          <div class="sign-line"></div>
+          <p>(อ.วิชัย เก่งกาจ)</p>
+          <p>อาจารย์นิเทศ</p>
+          <p>วันที่ ...../...../.....</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

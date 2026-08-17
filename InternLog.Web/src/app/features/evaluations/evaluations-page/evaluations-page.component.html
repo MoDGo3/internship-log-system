@@ -1,0 +1,83 @@
+<div class="page-container">
+  <div class="page-header">
+    <h2>แบบประเมินผลการฝึกงาน</h2>
+    <p>การประเมินผลแบบ 360 องศา (นักศึกษา - สถานประกอบการ)</p>
+  </div>
+
+  <div class="eval-grid">
+    
+    <!-- Card 1: Mentor -> Student (Readonly for student) -->
+    <div class="card eval-card">
+      <div class="card-header">
+        <h3>1. ผลการประเมินจากพี่เลี้ยง</h3>
+        <span class="status-badge bg-success-light text-success">ประเมินแล้ว</span>
+      </div>
+      <div class="card-body">
+        
+        <div class="eval-item" *ngFor="let item of mentorEvalItems; let i = index">
+          <div class="eval-question">
+            <strong>{{ i + 1 }}.</strong> {{ item.question }}
+          </div>
+          <div class="eval-rating readonly">
+            <span class="star" 
+                  *ngFor="let star of stars"
+                  [class.filled]="star <= item.score">★</span>
+          </div>
+        </div>
+
+        <div class="eval-summary">
+          <div class="score-display">
+            <span class="label">คะแนนรวม</span>
+            <div class="score-value text-primary">{{ getTotalScore(mentorEvalItems) | number:'1.0-0' }}%</div>
+          </div>
+          <div class="grade-display" [ngClass]="getGradeClass(getGrade(getTotalScore(mentorEvalItems)))">
+            {{ getGrade(getTotalScore(mentorEvalItems)) }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 2: Student -> Company (Editable) -->
+    <div class="card eval-card">
+      <div class="card-header">
+        <h3>2. แบบประเมินสถานประกอบการ (โดยนักศึกษา)</h3>
+        <span class="status-badge bg-warning-light text-warning">รอการประเมิน</span>
+      </div>
+      <div class="card-body">
+        
+        <div class="eval-item" *ngFor="let item of studentEvalItems; let i = index">
+          <div class="eval-question">
+            <strong>{{ i + 1 }}.</strong> {{ item.question }}
+          </div>
+          <div class="eval-rating interactive">
+            <span class="star" 
+                  *ngFor="let star of stars"
+                  [class.filled]="star <= item.score"
+                  (click)="setScore(item, star)">★</span>
+          </div>
+        </div>
+
+        <div class="form-group mt-lg">
+          <label class="form-label">ข้อเสนอแนะเพิ่มเติม</label>
+          <textarea class="form-control" rows="3" placeholder="ระบุข้อเสนอแนะ..." [(ngModel)]="studentComment"></textarea>
+        </div>
+
+        <div class="eval-summary">
+          <div class="score-display">
+            <span class="label">คะแนนรวม</span>
+            <div class="score-value text-primary">{{ getTotalScore(studentEvalItems) | number:'1.0-0' }}%</div>
+          </div>
+          <div class="grade-display" [ngClass]="getGradeClass(getGrade(getTotalScore(studentEvalItems)))">
+            {{ getGrade(getTotalScore(studentEvalItems)) }}
+          </div>
+        </div>
+
+        <div class="card-actions">
+          <button class="btn-primary" (click)="submitEvaluation()">ส่งผลการประเมิน</button>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>

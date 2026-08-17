@@ -1,0 +1,78 @@
+.sidebar-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--surface);
+}
+
+.logo-area {
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid #E5E7EB;
+  
+  .logo-text {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--primary);
+  }
+}
+
+.nav-menu {
+  flex: 1;
+  padding: var(--spacing-md) 0;
+  overflow-y: auto;
+}
+
+.nav-bottom {
+  padding: var(--spacing-md) 0;
+  border-top: 1px solid #E5E7EB;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: 12px var(--spacing-lg);
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  
+  .icon {
+    margin-right: 12px;
+    font-size: 18px;
+  }
+  
+  &:hover {
+    background-color: #F3F4F6;
+    color: var(--text);
+  }
+  
+  &.active {
+    background-color: #EEF2FF;
+    color: var(--primary);
+    border-right: 4px solid var(--primary);
+    font-weight: 600;
+  }
+}
+
+.nav-divider {
+  height: 1px;
+  background-color: #E5E7EB;
+  margin: 16px 0;
+}
+
+.nav-section-title {
+  padding: 8px var(--spacing-lg);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.logout-btn {
+  color: var(--danger);
+  &:hover {
+    background-color: #FEE2E2;
+    color: var(--danger);
+  }
+}

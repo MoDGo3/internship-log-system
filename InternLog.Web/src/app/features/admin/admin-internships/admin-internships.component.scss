@@ -1,0 +1,111 @@
+.page-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.page-header {
+  h2 { margin: 0 0 4px 0; color: var(--text); }
+  p { margin: 0; color: var(--text-secondary); font-size: 14px; }
+  &.space-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-primary {
+  height: 40px;
+  padding: 0 20px;
+  background-color: var(--primary);
+  color: white;
+  border-radius: var(--radius-button);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.2s;
+  
+  &:hover { opacity: 0.9; }
+}
+
+.table-card {
+  background: white;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 0;
+  overflow: hidden;
+  
+  .filter-bar {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 16px;
+    
+    .form-control {
+      height: 40px;
+      padding: 0 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-button);
+      font-size: 14px;
+      
+      &.search { min-width: 280px; }
+      &:focus { outline: none; border-color: var(--primary); }
+    }
+  }
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  
+  th, td {
+    padding: 16px 24px;
+    text-align: left;
+    border-bottom: 1px solid #E5E7EB;
+    font-size: 14px;
+  }
+  
+  th {
+    background-color: #F9FAFB;
+    color: var(--text-secondary);
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 12px;
+  }
+}
+
+.font-bold { font-weight: 600; }
+.text-secondary { color: var(--text-secondary); }
+.text-danger { color: var(--danger) !important; }
+
+.chip {
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  
+  &.chip-success { background-color: #DCFCE7; color: var(--success); }
+  &.chip-warning { background-color: #FEF3C7; color: var(--warning); }
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: opacity 0.2s;
+  
+  &:hover { opacity: 0.7; }
+}

@@ -1,0 +1,122 @@
+<div class="page-container">
+  <div class="page-header">
+    <h2>โปรไฟล์และการตั้งค่า</h2>
+    <p>จัดการข้อมูลส่วนตัวและการตั้งค่าบัญชี</p>
+  </div>
+
+  <div class="profile-layout">
+    
+    <!-- Card 1: Personal Info -->
+    <div class="card">
+      <div class="card-header">
+        <h3>ข้อมูลส่วนตัว</h3>
+      </div>
+      <div class="card-body">
+        <div class="avatar-section">
+          <div class="avatar-preview" (click)="uploadAvatar()">
+            <span *ngIf="!profile.avatar">{{ profile.firstName.charAt(0) }}</span>
+            <div class="avatar-overlay">📷</div>
+          </div>
+          <div class="avatar-info">
+            <h4>รูปโปรไฟล์</h4>
+            <p>คลิกที่รูปเพื่ออัปโหลด (แนะนำขนาด 500x500px)</p>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">ชื่อ</label>
+            <input type="text" class="form-control" [(ngModel)]="profile.firstName">
+          </div>
+          <div class="form-group">
+            <label class="form-label">นามสกุล</label>
+            <input type="text" class="form-control" [(ngModel)]="profile.lastName">
+          </div>
+          <div class="form-group">
+            <label class="form-label">รหัสนักศึกษา</label>
+            <input type="text" class="form-control" [(ngModel)]="profile.studentId" disabled>
+          </div>
+          <div class="form-group">
+            <label class="form-label">อีเมล</label>
+            <input type="email" class="form-control" [(ngModel)]="profile.email" disabled>
+          </div>
+          <div class="form-group full-width">
+            <label class="form-label">เบอร์โทรศัพท์</label>
+            <input type="tel" class="form-control" [(ngModel)]="profile.phone">
+          </div>
+        </div>
+
+        <div class="card-actions">
+          <button class="btn-primary" (click)="saveProfile()">บันทึกข้อมูล</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 2: Internship Info -->
+    <div class="card">
+      <div class="card-header">
+        <h3>ข้อมูลการฝึกงาน</h3>
+      </div>
+      <div class="card-body">
+        <div class="info-list">
+          <div class="info-item">
+            <span class="icon">🏢</span>
+            <div class="content">
+              <label>สถานที่ฝึกงาน</label>
+              <p>{{ internship.company }}</p>
+            </div>
+          </div>
+          <div class="info-item">
+            <span class="icon">📅</span>
+            <div class="content">
+              <label>ระยะเวลา</label>
+              <p>{{ internship.period }}</p>
+            </div>
+          </div>
+          <div class="info-item">
+            <span class="icon">👨‍🏫</span>
+            <div class="content">
+              <label>อาจารย์นิเทศ</label>
+              <p>{{ internship.advisor }}</p>
+            </div>
+          </div>
+          <div class="info-item">
+            <span class="icon">🧑‍💻</span>
+            <div class="content">
+              <label>พี่เลี้ยง</label>
+              <p>{{ internship.mentor }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 3: Change Password -->
+    <div class="card">
+      <div class="card-header">
+        <h3>เปลี่ยนรหัสผ่าน</h3>
+      </div>
+      <div class="card-body">
+        <div class="form-grid single-col">
+          <div class="form-group">
+            <label class="form-label">รหัสผ่านปัจจุบัน</label>
+            <input type="password" class="form-control" [(ngModel)]="passwords.current">
+          </div>
+          <div class="form-group">
+            <label class="form-label">รหัสผ่านใหม่</label>
+            <input type="password" class="form-control" [(ngModel)]="passwords.new">
+          </div>
+          <div class="form-group">
+            <label class="form-label">ยืนยันรหัสผ่านใหม่</label>
+            <input type="password" class="form-control" [(ngModel)]="passwords.confirm">
+          </div>
+        </div>
+
+        <div class="card-actions">
+          <button class="btn-primary" (click)="changePassword()">อัปเดตรหัสผ่าน</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

@@ -1,0 +1,55 @@
+<div class="page-container">
+  <div class="page-header space-between">
+    <div>
+      <h2>จัดการผู้ใช้งาน</h2>
+      <p>เพิ่ม ลบ แก้ไข ข้อมูลผู้ใช้งานในระบบ</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-outline">⬆ Import Excel</button>
+      <button class="btn-primary">+ เพิ่มผู้ใช้</button>
+    </div>
+  </div>
+
+  <div class="card table-card">
+    <div class="filter-bar">
+      <input type="text" class="form-control search" placeholder="ค้นหาชื่อ หรืออีเมล..." aria-label="ค้นหาผู้ใช้งาน" title="ค้นหาผู้ใช้งาน">
+      <select class="form-control" aria-label="กรองตามบทบาท" title="กรองตามบทบาท">
+        <option value="">ทุกบทบาท</option>
+        <option value="student">นักศึกษา</option>
+        <option value="advisor">อาจารย์</option>
+      </select>
+    </div>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>ผู้ใช้งาน</th>
+          <th>อีเมล</th>
+          <th>บทบาท</th>
+          <th>สถานะ</th>
+          <th>จัดการ</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let user of users">
+          <td>
+            <div class="user-info">
+              <div class="avatar">{{ user.firstName?.charAt(0) || user.username?.charAt(0) }}</div>
+              <span>{{ user.firstName }} {{ user.lastName }}</span>
+            </div>
+          </td>
+          <td>{{ user.email }}</td>
+          <td><span class="chip" [ngClass]="getRoleClass(user.role)">{{ user.role }}</span></td>
+          <td>
+            <label class="switch">
+              <input type="checkbox" [checked]="user.isActive" (change)="toggleStatus(user)" aria-label="เปิด/ปิดสถานะผู้ใช้งาน" title="เปิด/ปิดสถานะผู้ใช้งาน">
+              <span class="slider round"></span>
+            </label>
+          </td>
+          <td>
+            <button class="btn-icon">✏️</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

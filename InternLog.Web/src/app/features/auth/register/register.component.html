@@ -1,0 +1,111 @@
+<div class="login-layout">
+  <!-- Left Side: Branding -->
+  <div class="brand-section">
+    <div class="brand-content">
+      <div class="logo">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="48" height="48" rx="12" fill="white" fill-opacity="0.2"/>
+          <path d="M14 24L22 32L34 16" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h1>InternLog</h1>
+      </div>
+      <p class="tagline">เริ่มต้นจดบันทึกการฝึกงานของคุณได้ง่ายๆ เพียงสมัครสมาชิกเพื่อเข้าใช้งานระบบ</p>
+    </div>
+  </div>
+
+  <!-- Right Side: Register Form -->
+  <div class="form-section">
+    <div class="login-card register-card">
+      <div class="card-header">
+        <h2>สมัครสมาชิก</h2>
+        <p>สร้างบัญชีนักศึกษาใหม่เพื่อเริ่มใช้งาน</p>
+      </div>
+
+      <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="login-form">
+        
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="firstName">ชื่อ</label>
+            <input type="text" id="firstName" formControlName="firstName" [class.is-invalid]="registerForm.get('firstName')?.invalid && registerForm.get('firstName')?.touched">
+          </div>
+          <div class="form-group flex-1">
+            <label for="lastName">นามสกุล</label>
+            <input type="text" id="lastName" formControlName="lastName" [class.is-invalid]="registerForm.get('lastName')?.invalid && registerForm.get('lastName')?.touched">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="email">อีเมล</label>
+          <input type="email" id="email" formControlName="email" [class.is-invalid]="registerForm.get('email')?.invalid && registerForm.get('email')?.touched">
+          <span class="error-text" *ngIf="registerForm.get('email')?.invalid && registerForm.get('email')?.touched">
+            กรุณากรอกอีเมลให้ถูกต้อง
+          </span>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="studentId">รหัสนักศึกษา (ไม่บังคับ)</label>
+            <input type="text" id="studentId" formControlName="studentId">
+          </div>
+          <div class="form-group flex-1">
+            <label for="phone">เบอร์โทรศัพท์ (ไม่บังคับ)</label>
+            <input type="text" id="phone" formControlName="phone">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">รหัสผ่าน</label>
+          <div class="password-input-wrapper">
+            <input [type]="showPassword ? 'text' : 'password'" id="password" formControlName="password" [class.is-invalid]="registerForm.get('password')?.invalid && registerForm.get('password')?.touched">
+            <button type="button" class="toggle-password" (click)="togglePasswordVisibility('password')">
+              {{ showPassword ? 'ปิดตา' : 'เปิดตา' }}
+            </button>
+          </div>
+          
+          <!-- Password Strength Meter -->
+          <div class="password-strength" *ngIf="registerForm.get('password')?.value">
+            <div class="strength-bars">
+              <div class="bar" [class.active]="passwordStrength >= 1" [class.danger]="passwordStrength === 1" [class.warning]="passwordStrength === 2" [class.info]="passwordStrength === 3" [class.success]="passwordStrength === 4"></div>
+              <div class="bar" [class.active]="passwordStrength >= 2" [class.warning]="passwordStrength === 2" [class.info]="passwordStrength === 3" [class.success]="passwordStrength === 4"></div>
+              <div class="bar" [class.active]="passwordStrength >= 3" [class.info]="passwordStrength === 3" [class.success]="passwordStrength === 4"></div>
+              <div class="bar" [class.active]="passwordStrength >= 4" [class.success]="passwordStrength === 4"></div>
+            </div>
+            <div class="strength-text" [ngClass]="{'c-danger': passwordStrength===1, 'c-warning': passwordStrength===2, 'c-info': passwordStrength===3, 'c-success': passwordStrength===4}">
+              {{ getStrengthText() }}
+            </div>
+          </div>
+          <span class="error-text" *ngIf="registerForm.get('password')?.errors?.['complexity'] && registerForm.get('password')?.touched">
+            รหัสผ่านต้องมีตัวพิมพ์ใหญ่, เล็ก, ตัวเลข และอักขระพิเศษ
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label for="confirmPassword">ยืนยันรหัสผ่าน</label>
+          <div class="password-input-wrapper">
+            <input [type]="showConfirmPassword ? 'text' : 'password'" id="confirmPassword" formControlName="confirmPassword" [class.is-invalid]="(registerForm.errors?.['mismatch'] || registerForm.get('confirmPassword')?.invalid) && registerForm.get('confirmPassword')?.touched">
+            <button type="button" class="toggle-password" (click)="togglePasswordVisibility('confirm')">
+              {{ showConfirmPassword ? 'ปิดตา' : 'เปิดตา' }}
+            </button>
+          </div>
+          <span class="error-text" *ngIf="registerForm.errors?.['mismatch'] && registerForm.get('confirmPassword')?.touched">
+            รหัสผ่านไม่ตรงกัน
+          </span>
+        </div>
+
+        <div class="error-alert" *ngIf="errorMessage" style="color: #dc3545; background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 10px; border-radius: 4px; margin-bottom: 15px; text-align: center;">
+          <strong>เกิดข้อผิดพลาด:</strong> {{ errorMessage }}
+        </div>
+
+        <button type="submit" class="btn-primary" [disabled]="isLoading">
+          <span *ngIf="!isLoading">สมัครสมาชิก</span>
+          <span *ngIf="isLoading" class="spinner"></span>
+        </button>
+
+      </form>
+
+      <div class="card-footer">
+        มีบัญชีผู้ใช้แล้ว? <a routerLink="/login">เข้าสู่ระบบ</a>
+      </div>
+    </div>
+  </div>
+</div>

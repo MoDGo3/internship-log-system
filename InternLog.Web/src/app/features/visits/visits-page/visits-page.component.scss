@@ -1,0 +1,138 @@
+.page-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.page-header {
+  h2 {
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  
+  p {
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+  
+  &.space-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.btn-primary {
+  height: 44px;
+  padding: 0 24px;
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-button);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  
+  &:hover { opacity: 0.9; }
+}
+
+.table-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  
+  th, td {
+    padding: 16px var(--spacing-lg);
+    text-align: left;
+    border-bottom: 1px solid #E5E7EB;
+    font-size: 14px;
+  }
+  
+  th {
+    background-color: #F9FAFB;
+    color: var(--text-secondary);
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 12px;
+  }
+  
+  tbody tr {
+    transition: background-color 0.2s;
+    height: 64px;
+    
+    &:hover {
+      background-color: #F9FAFB;
+    }
+  }
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  
+  .avatar {
+    width: 32px;
+    height: 32px;
+    background-color: #EEF2FF;
+    color: var(--primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  
+  span {
+    font-weight: 500;
+    color: var(--text);
+  }
+}
+
+.summary-text {
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-secondary);
+}
+
+.chip {
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  
+  &.chip-info { background-color: #DBEAFE; color: var(--info); }
+  &.chip-warning { background-color: #FEF3C7; color: var(--warning); }
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  
+  &:hover { color: var(--primary); }
+}
+
+.empty-state {
+  text-align: center !important;
+  padding: 48px !important;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .page-header.space-between {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+}

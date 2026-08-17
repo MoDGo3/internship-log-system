@@ -1,0 +1,99 @@
+.topbar-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 100%;
+  padding: 0 var(--spacing-lg);
+}
+
+.left-section, .right-section {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.menu-btn, .notification-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  position: relative;
+  
+  &:hover {
+    color: var(--primary);
+  }
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  background-color: var(--background);
+  border-radius: var(--radius-input);
+  padding: 6px 12px;
+  width: 300px;
+  
+  .search-icon {
+    color: var(--text-secondary);
+    margin-right: 8px;
+    font-size: 14px;
+  }
+  
+  .search-input {
+    border: none;
+    background: transparent;
+    outline: none;
+    width: 100%;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text);
+    
+    &::placeholder {
+      color: var(--text-secondary);
+    }
+  }
+}
+
+.notification-btn {
+  .badge {
+    position: absolute;
+    top: -4px;
+    right: -6px;
+    background-color: var(--danger);
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 10px;
+  }
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: var(--radius-input);
+  transition: background-color 0.2s ease;
+  
+  &:hover {
+    background-color: var(--background);
+  }
+  
+  .avatar {
+    width: 32px;
+    height: 32px;
+    background-color: #E0E7FF;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+  
+  .user-name {
+    font-weight: 500;
+    font-size: 14px;
+  }
+}

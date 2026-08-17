@@ -1,0 +1,194 @@
+.page-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.page-header {
+  h2 { margin: 0 0 4px 0; color: var(--text); }
+  p { margin: 0; color: var(--text-secondary); font-size: 14px; }
+}
+
+.eval-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.card {
+  background: white;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  
+  .card-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    
+    h3 { margin: 0; font-size: 16px; color: var(--text); }
+  }
+  
+  .card-body {
+    padding: 24px;
+  }
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  
+  &.bg-success-light { background-color: #DCFCE7; }
+  &.text-success { color: var(--success); }
+  &.bg-warning-light { background-color: #FEF3C7; }
+  &.text-warning { color: var(--warning); }
+}
+
+.eval-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+  border-bottom: 1px solid #F3F4F6;
+  
+  &:last-of-type {
+    border-bottom: none;
+  }
+  
+  .eval-question {
+    flex: 1;
+    font-size: 15px;
+    color: var(--text);
+    padding-right: 16px;
+    
+    strong { color: var(--text-secondary); margin-right: 4px; }
+  }
+}
+
+.eval-rating {
+  display: flex;
+  gap: 4px;
+  
+  .star {
+    font-size: 24px;
+    color: #E5E7EB; /* empty star color */
+    
+    &.filled {
+      color: var(--warning);
+    }
+  }
+  
+  &.interactive {
+    .star {
+      cursor: pointer;
+      transition: transform 0.1s, color 0.1s;
+      
+      &:hover {
+        transform: scale(1.2);
+        color: var(--warning);
+      }
+    }
+    
+    /* Interactive hover logic for stars before the hovered one is hard in pure css without complex DOM.
+       Relying on JS click to lock is fine for the mockup as implemented in TS. */
+  }
+}
+
+.mt-lg { margin-top: 24px; }
+.form-label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+.form-control {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-button);
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+  
+  &:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+}
+
+.eval-summary {
+  margin-top: 32px;
+  padding: 24px;
+  background-color: #F9FAFB;
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  
+  .score-display {
+    .label {
+      display: block;
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+    .score-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+  }
+  
+  .grade-display {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    font-weight: 700;
+    color: white;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    
+    &.grade-a { background-color: var(--success); }
+    &.grade-b { background-color: var(--info); }
+    &.grade-c { background-color: var(--warning); }
+    &.grade-f { background-color: var(--danger); }
+  }
+}
+
+.card-actions {
+  margin-top: 24px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-primary {
+  height: 44px;
+  padding: 0 24px;
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-button);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  
+  &:hover { opacity: 0.9; }
+}
+
+@media (max-width: 640px) {
+  .eval-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}

@@ -1,0 +1,124 @@
+<div class="page-container">
+  
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-title">
+      <h2>รายงานสรุปผล</h2>
+      <p>ภาพรวมการฝึกงานและการประเมินผล</p>
+    </div>
+    <div class="header-actions">
+      <select class="form-control select-period" [(ngModel)]="selectedPeriod">
+        <option value="august">สิงหาคม 2569</option>
+        <option value="july">กรกฎาคม 2569</option>
+        <option value="all">ทั้งหมด</option>
+      </select>
+      <button class="btn-outline">⬇ Export PDF</button>
+      <button class="btn-primary" (click)="generateReport()">+ สร้างรายงาน</button>
+    </div>
+  </div>
+
+  <!-- Row 1: Stat Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon bg-primary-light">⏱️</div>
+      <div class="stat-info">
+        <span class="label">ชั่วโมงฝึกงานรวม</span>
+        <h3 class="value">{{ summary.totalHours }} <span class="unit">ชม.</span></h3>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon bg-success-light">📋</div>
+      <div class="stat-info">
+        <span class="label">บันทึกงานที่อนุมัติ</span>
+        <h3 class="value">- <span class="unit">รายการ</span></h3>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon bg-warning-light">🏖️</div>
+      <div class="stat-info">
+        <span class="label">ใช้วันลาไปแล้ว</span>
+        <h3 class="value">{{ summary.leaveDays }} <span class="unit">วัน</span></h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2: Chart -->
+  <div class="card chart-card">
+    <div class="card-header">
+      <h3>สัดส่วนชั่วโมงการทำงาน (แยกตามประเภท)</h3>
+    </div>
+    <div class="card-body">
+      <div class="css-bar-chart">
+        <div class="chart-y-axis">
+          <span>Max</span>
+          <span>Avg</span>
+          <span>0h</span>
+        </div>
+        <div class="chart-bars">
+          <div class="bar-group" *ngFor="let item of chartData">
+            <div class="bar" [style.height.%]="item.percent" [style.background-color]="item.color">
+              <div class="tooltip">{{ item.hours }} ชม.</div>
+            </div>
+            <span class="bar-label">{{ item.label }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 3: Two Columns -->
+  <div class="two-col-grid">
+    <!-- Attendance Summary -->
+    <div class="card">
+      <div class="card-header">
+        <h3>สรุปการลงเวลา</h3>
+      </div>
+      <div class="card-body p-0">
+        <table class="table-sm">
+          <tbody>
+            <tr><td>มาทำงาน (วัน)</td><td class="text-right font-bold text-success">{{ summary.attendanceDays }} วัน</td></tr>
+            <tr><td>ลา</td><td class="text-right font-bold text-secondary">{{ summary.leaveDays }} วัน</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Visit Summary -->
+    <div class="card">
+      <div class="card-header">
+        <h3>สรุปการนิเทศ</h3>
+      </div>
+      <div class="card-body p-0">
+        <table class="table-sm">
+          <tbody>
+            <tr><td>ครั้งที่ 1 (Onsite)</td><td class="text-right font-bold">- คะแนน</td></tr>
+            <tr><td>ครั้งที่ 2 (Online)</td><td class="text-right font-bold text-secondary">รอประเมิน</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 4: Generated Reports -->
+  <div class="card">
+    <div class="card-header">
+      <h3>เอกสารรายงานที่สร้างแล้ว</h3>
+    </div>
+    <div class="card-body p-0">
+      <div class="report-list">
+        <div class="report-item" *ngFor="let report of reportsList">
+          <div class="report-icon">📄</div>
+          <div class="report-info">
+            <h4>{{ report.title }}</h4>
+            <span>สร้างเมื่อ: {{ report.reportDateFormatted || (report.reportDate | date:'dd MMM yyyy') }}</span>
+          </div>
+          <div class="report-actions">
+            <button class="btn-sm btn-outline" [routerLink]="['/reports', report.id, 'preview']">ดูตัวอย่าง</button>
+            <button class="btn-sm btn-primary">ดาวน์โหลด</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

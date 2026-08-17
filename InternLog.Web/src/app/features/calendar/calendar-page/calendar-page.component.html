@@ -1,0 +1,101 @@
+<div class="page-container">
+  <!-- Header -->
+  <div class="calendar-header">
+    <div class="month-navigation">
+      <button class="btn-icon" (click)="prevMonth()">❮</button>
+      <h2>{{ currentMonthYear }}</h2>
+      <button class="btn-icon" (click)="nextMonth()">❯</button>
+    </div>
+    
+    <div class="calendar-legend">
+      <div class="legend-item"><span class="dot bg-success"></span> อนุมัติแล้ว</div>
+      <div class="legend-item"><span class="dot bg-warning"></span> รออนุมัติ</div>
+      <div class="legend-item"><span class="dot bg-danger"></span> ขาดงาน</div>
+      <div class="legend-item"><span class="dot bg-leave"></span> ลา</div>
+    </div>
+  </div>
+
+  <!-- Calendar Grid -->
+  <div class="calendar-card">
+    <div class="calendar-grid">
+      <!-- Weekday Headers -->
+      <div class="weekday" *ngFor="let day of weekDays">{{ day }}</div>
+      
+      <!-- Days -->
+      <div class="calendar-cell" 
+           *ngFor="let day of calendarDays" 
+           [class.other-month]="!day.isCurrentMonth"
+           [class.is-today]="isToday(day.date)"
+           (click)="openDrawer(day)">
+        
+        <span class="date-number">{{ day.date | date:'d' }}</span>
+        
+        <!-- Indicators -->
+        <div class="indicators" *ngIf="day.status !== 'none'">
+          <span class="status-dot" 
+                [class.bg-success]="day.status === 'approved'"
+                [class.bg-warning]="day.status === 'pending'"
+                [class.bg-danger]="day.status === 'absent'"
+                [class.bg-leave]="day.status === 'leave'">
+          </span>
+          <span class="log-icon" *ngIf="day.hasLog">📋</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Side Drawer -->
+<div class="drawer-overlay" [class.open]="isDrawerOpen" (click)="closeDrawer()"></div>
+<div class="side-drawer" [class.open]="isDrawerOpen">
+  <div class="drawer-header">
+    <h3>{{ formatDateHeader(selectedDay?.date) }}</h3>
+    <button class="btn-close" (click)="closeDrawer()">✕</button>
+  </div>
+  
+  <div class="drawer-content" *ngIf="selectedDay">
+    <!-- Section 1: Attendance -->
+    <div class="drawer-section">
+      <h4>การลงเวลา</h4>
+      <div class="info-card" *ngIf="selectedDay.status !== 'none'; else noAttendance">
+        <div class="info-row">
+          <span>เวลาเข้า:</span> <strong>08:45</strong>
+        </div>
+        <div class="info-row">
+          <span>เวลาออก:</span> <strong>17:30</strong>
+        </div>
+        <div class="info-row">
+          <span>สถานะ:</span>
+          <span class="badge" 
+                [class.badge-success]="selectedDay.status === 'approved'"
+                [class.badge-warning]="selectedDay.status === 'pending'"
+                [class.badge-leave]="selectedDay.status === 'leave'">
+            {{ selectedDay.status }}
+          </span>
+        </div>
+      </div>
+      <ng-template #noAttendance>
+        <p class="text-secondary text-sm">ไม่มีข้อมูลลงเวลาในวันนี้</p>
+      </ng-template>
+    </div>
+
+    <!-- Section 2: Work Logs -->
+    <div class="drawer-section">
+      <div class="section-header">
+        <h4>บันทึกการปฏิบัติงาน</h4>
+        <button class="btn-sm btn-outline" routerLink="/work-logs/new">
+          + เพิ่มบันทึก
+        </button>
+      </div>
+      
+      <div class="work-log-card" *ngIf="selectedDay.hasLog; else noLogs">
+        <h5 class="log-title">งานที่ทำในวันนี้</h5>
+        <span class="chip">Development</span>
+        <p class="text-sm mt-2">รายละเอียดแบบย่อ...</p>
+      </div>
+      <ng-template #noLogs>
+        <p class="text-secondary text-sm">ไม่มีบันทึกงานในวันนี้</p>
+      </ng-template>
+    </div>
+  </div>
+</div>
