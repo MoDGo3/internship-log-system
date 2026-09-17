@@ -2,6 +2,7 @@ using InternLog.API.Core.Common;
 using InternLog.API.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace InternLog.API.Modules.Attendance;
 
@@ -20,7 +21,8 @@ public class AttendanceController : ControllerBase
 
     [HttpPost("check-in")]
     [Authorize(Roles = "student")]
-    public async Task<IActionResult> CheckIn([FromBody] string? note)
+    public async Task<IActionResult> CheckIn(
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] string? note)
     {
         var result = await _attendanceService.CheckInAsync(_currentUser.UserId, note);
         return Ok(ApiResponse<AttendanceDto>.Ok(result, "ลงเวลาเข้างานสำเร็จ"));
@@ -28,14 +30,15 @@ public class AttendanceController : ControllerBase
 
     [HttpPost("check-out")]
     [Authorize(Roles = "student")]
-    public async Task<IActionResult> CheckOut([FromBody] string? note)
+    public async Task<IActionResult> CheckOut(
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] string? note)
     {
         var result = await _attendanceService.CheckOutAsync(_currentUser.UserId, note);
         return Ok(ApiResponse<AttendanceDto>.Ok(result, "ลงเวลาออกงานสำเร็จ"));
     }
 
     [HttpGet]
-    [Authorize] // Student, Advisor, Supervisor
+    [Authorize(Roles = "student,advisor,admin")]
     public async Task<IActionResult> GetHistory([FromQuery] int? month, [FromQuery] int? year)
     {
         var result = await _attendanceService.GetHistoryAsync(_currentUser.UserId, month, year);
@@ -59,7 +62,7 @@ public class AttendanceController : ControllerBase
     }
 
     [HttpPut("{id}/review")]
-    [Authorize(Roles = "advisor,supervisor")]
+    [Authorize(Roles = "advisor")]
     public async Task<IActionResult> ReviewEdit(int id, [FromBody] ReviewEditDto dto)
     {
         await _attendanceService.ReviewEditAsync(id, _currentUser.UserId, dto);

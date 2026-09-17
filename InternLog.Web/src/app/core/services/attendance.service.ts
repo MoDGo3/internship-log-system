@@ -1,7 +1,9 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, throwError } from 'rxjs';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { AttendanceRecord, AttendanceSummary } from '../../models/attendance.model';
+import { ApiResponse } from '../../models/user.model';
 
 @Injectable({
   providedIn: 'root'
@@ -11,44 +13,36 @@ export class AttendanceService {
 
   constructor(private http: HttpClient) {}
 
-  getRecords(): Observable<any> {
-    return this.http.get<any>(this.apiUrl).pipe(
-      catchError(this.handleError)
-    );
+  getRecords(month?: number, year?: number): Observable<ApiResponse<AttendanceRecord[]>> {
+    let params = new HttpParams();
+    if (month) params = params.set('month', month.toString());
+    if (year) params = params.set('year', year.toString());
+    
+    return this.http.get<ApiResponse<AttendanceRecord[]>>(this.apiUrl, { params });
   }
 
-  getSummary(): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/summary`).pipe(
-      catchError(this.handleError)
-    );
+  getSummary(internshipId: number): Observable<ApiResponse<AttendanceSummary>> {
+    return this.http.get<ApiResponse<AttendanceSummary>>(`${this.apiUrl}/summary?internshipId=${internshipId}`);
   }
 
-  checkIn(data: any): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/check-in`, data).pipe(
-      catchError(this.handleError)
-    );
+  checkIn(note: string | null): Observable<ApiResponse<AttendanceRecord>> {
+    // Backend API accepts a string body (the note) or null
+    return this.http.post<ApiResponse<AttendanceRecord>>(`${this.apiUrl}/check-in`, note ? JSON.stringify(note) : 'null', {
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 
-  checkOut(data: any): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/check-out`, data).pipe(
-      catchError(this.handleError)
-    );
+  checkOut(note: string | null): Observable<ApiResponse<AttendanceRecord>> {
+    return this.http.post<ApiResponse<AttendanceRecord>>(`${this.apiUrl}/check-out`, note ? JSON.stringify(note) : 'null', {
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 
-  requestEdit(id: string, data: any): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/${id}/request-edit`, data).pipe(
-      catchError(this.handleError)
-    );
+  requestEdit(id: number, data: any): Observable<ApiResponse<any>> {
+    return this.http.put<ApiResponse<any>>(`${this.apiUrl}/${id}/request-edit`, data);
   }
 
-  reviewEdit(id: string, data: any): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/${id}/review`, data).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-  private handleError(error: any) {
-    console.error('An error occurred:', error);
-    return throwError(() => new Error(error.message || 'Server error'));
+  reviewEdit(id: number, data: any): Observable<ApiResponse<any>> {
+    return this.http.put<ApiResponse<any>>(`${this.apiUrl}/${id}/review`, data);
   }
 }

@@ -29,8 +29,8 @@ public class TaskService : ITaskService
 
         if (role == "student")
             query = query.Where(t => t.Internship.StudentID == userId);
-        else // advisor or supervisor
-            query = query.Where(t => t.AssignedBy == userId);
+        else if (role == "advisor")
+            query = query.Where(t => t.Internship.AdvisorID == userId);
 
         var tasks = await query.OrderByDescending(t => t.CreatedAt).ToListAsync();
 
@@ -70,9 +70,6 @@ public class TaskService : ITaskService
         if (role == "advisor" && internship.AdvisorID != assignerId)
             throw AppException.Forbidden("สามารถสั่งงานได้เฉพาะนักศึกษาในที่ปรึกษาของตนเอง");
             
-        if (role == "supervisor" && internship.SupervisorID != assignerId)
-            throw AppException.Forbidden("สามารถสั่งงานได้เฉพาะนักศึกษาในความดูแลของตนเอง");
-
         var task = new TaskItem
         {
             InternshipID = request.InternshipID,
@@ -107,7 +104,8 @@ public class TaskService : ITaskService
         if (task == null)
             throw AppException.NotFound("ไม่พบงานนี้");
 
-        if (task.AssignedBy != assignerId)
+        if (_currentUser.Role != "admin" &&
+            (task.AssignedBy != assignerId || task.Internship.AdvisorID != assignerId))
             throw AppException.Forbidden("สามารถแก้ไขได้เฉพาะงานที่ตนเองเป็นคนสั่งเท่านั้น");
 
         task.Title = request.Title;
@@ -143,12 +141,15 @@ public class TaskService : ITaskService
     {
         var assignerId = _currentUser.UserId;
 
-        var task = await _context.Tasks.FirstOrDefaultAsync(t => t.TaskID == taskId);
+        var task = await _context.Tasks
+            .Include(t => t.Internship)
+            .FirstOrDefaultAsync(t => t.TaskID == taskId);
 
         if (task == null)
             throw AppException.NotFound("ไม่พบงานนี้");
 
-        if (task.AssignedBy != assignerId)
+        if (_currentUser.Role != "admin" &&
+            (task.AssignedBy != assignerId || task.Internship.AdvisorID != assignerId))
             throw AppException.Forbidden("สามารถลบได้เฉพาะงานที่ตนเองเป็นคนสั่งเท่านั้น");
 
         _context.Tasks.Remove(task);
@@ -163,7 +164,7 @@ public class TaskService : ITaskService
         if (role == "student" && task.Internship.StudentID != userId)
             throw AppException.Forbidden("คุณไม่มีสิทธิ์เข้าถึงงานนี้");
 
-        if (role != "student" && task.AssignedBy != userId)
+        if (role == "advisor" && task.Internship.AdvisorID != userId)
             throw AppException.Forbidden("คุณไม่มีสิทธิ์เข้าถึงงานนี้");
     }
 

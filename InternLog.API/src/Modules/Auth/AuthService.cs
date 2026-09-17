@@ -148,7 +148,25 @@ public class AuthService : IAuthService
         return ToDto(user);
     }
 
-    // ─── Change Password ─────────────────────────────────────────────────────
+    // ─── Update Profile ──────────────────────────────────────────────────────
+    public async Task<UserDto> UpdateProfileAsync(int userId, UpdateProfileRequest req)
+    {
+        var user = await _db.Users
+            .Include(u => u.Role)
+            .FirstOrDefaultAsync(u => u.UserID == userId && u.IsActive)
+            ?? throw AppException.NotFound("ไม่พบข้อมูลผู้ใช้");
+
+        user.FirstName = req.FirstName.Trim();
+        user.LastName  = req.LastName.Trim();
+        user.Phone     = req.Phone?.Trim();
+
+        await _db.SaveChangesAsync();
+        _logger.LogInformation("Profile updated for UserID: {UserId}", userId);
+
+        return ToDto(user);
+    }
+
+
     public async Task ChangePasswordAsync(int userId, ChangePasswordRequest req)
     {
         if (req.NewPassword != req.ConfirmPassword)

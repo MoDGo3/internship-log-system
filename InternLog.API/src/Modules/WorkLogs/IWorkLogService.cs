@@ -5,13 +5,13 @@ namespace InternLog.API.Modules.WorkLogs;
 
 public interface IWorkLogService
 {
+    Task<IEnumerable<WorkCategoryDto>> GetCategoriesAsync();
     Task<IEnumerable<WorkLogResponseDto>> GetStudentLogsAsync();
-    Task<IEnumerable<WorkLogResponseDto>> GetPendingLogsAsync();
+    Task<IEnumerable<WorkLogResponseDto>> GetAllLogsAsync();
     Task<WorkLogResponseDto> GetLogDetailAsync(int logId);
-    Task<WorkLogResponseDto> CreateLogAsync(WorkLogRequestDto request, bool isSubmit);
+    Task<WorkLogResponseDto> CreateLogAsync(WorkLogRequestDto request);
     Task<WorkLogResponseDto> UpdateLogAsync(int logId, WorkLogRequestDto request);
-    Task<WorkLogResponseDto> SubmitLogAsync(int logId);
-    Task<WorkLogResponseDto> ReviewLogAsync(int logId, ReviewLogDto reviewDto);
+    Task DeleteLogAsync(int logId);
     Task<AttachmentResponseDto> UploadAttachmentAsync(int logId, IFormFile file);
     Task DeleteAttachmentAsync(int attachmentId);
     Task<CommentResponseDto> AddCommentAsync(int logId, CommentRequestDto commentDto);

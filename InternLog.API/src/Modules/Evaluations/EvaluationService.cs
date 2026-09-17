@@ -34,7 +34,7 @@ public class EvaluationService : IEvaluationService
         bool canAccess = role == "admin"
             || (role == "student" && internship.StudentID == userId)
             || (role == "advisor" && internship.AdvisorID == userId)
-            || (role == "supervisor" && internship.SupervisorID == userId);
+            || (role == "admin");
 
         if (!canAccess)
             throw AppException.Forbidden("คุณไม่มีสิทธิ์เข้าถึงข้อมูลนี้");
@@ -72,17 +72,14 @@ public class EvaluationService : IEvaluationService
         if (internship == null)
             throw AppException.NotFound("ไม่พบข้อมูลการฝึกงานนี้");
 
-        // supervisor_eval: ทำได้เฉพาะ supervisor หรือ advisor
+        // advisor_eval: ทำได้เฉพาะ advisor
         // student_eval: ทำได้เฉพาะนักศึกษาเจ้าของ
-        if (request.EvaluatorRole == "supervisor_eval")
+        if (request.EvaluatorRole == "advisor_eval")
         {
-            if (role != "supervisor" && role != "advisor")
-                throw AppException.Forbidden("เฉพาะ Supervisor หรือ Advisor เท่านั้นที่ประเมินได้");
+            if (role != "advisor")
+                throw AppException.Forbidden("เฉพาะ Advisor เท่านั้นที่ประเมินได้");
 
-            if (role == "supervisor" && internship.SupervisorID != userId)
-                throw AppException.Forbidden("คุณไม่ใช่ Supervisor ของการฝึกงานนี้");
-
-            if (role == "advisor" && internship.AdvisorID != userId)
+            if (internship.AdvisorID != userId)
                 throw AppException.Forbidden("คุณไม่ใช่ Advisor ของการฝึกงานนี้");
         }
         else if (request.EvaluatorRole == "student_eval")
@@ -92,7 +89,7 @@ public class EvaluationService : IEvaluationService
         }
         else
         {
-            throw AppException.BadRequest("EvaluatorRole ไม่ถูกต้อง (ต้องเป็น supervisor_eval หรือ student_eval)");
+            throw AppException.BadRequest("EvaluatorRole ไม่ถูกต้อง (ต้องเป็น advisor_eval หรือ student_eval)");
         }
 
         // เช็คว่าเคยประเมินประเภทนี้ไปแล้วหรือยัง (1 internship = 1 eval per type)

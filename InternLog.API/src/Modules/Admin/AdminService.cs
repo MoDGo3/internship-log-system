@@ -198,7 +198,6 @@ public class AdminService : IAdminService
             StudentID = request.StudentID,
             CompanyID = request.CompanyID,
             AdvisorID = request.AdvisorID,
-            SupervisorID = request.SupervisorID,
             StartDate = request.StartDate,
             EndDate = request.EndDate,
             RequiredDays = request.RequiredDays

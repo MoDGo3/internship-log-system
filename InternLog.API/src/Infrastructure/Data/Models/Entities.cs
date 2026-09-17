@@ -35,8 +35,6 @@ public class User
     public Role Role { get; set; } = null!;
     public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
     public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = [];
-    public ICollection<Message> SentMessages { get; set; } = [];
-    public ICollection<Message> ReceivedMessages { get; set; } = [];
     public ICollection<Notification> Notifications { get; set; } = [];
     public ICollection<LogComment> LogComments { get; set; } = [];
 }
@@ -76,7 +74,6 @@ public class Internship
     public int StudentID { get; set; }
     public int CompanyID { get; set; }
     public int AdvisorID { get; set; }
-    public int? SupervisorID { get; set; }
     public int PeriodID { get; set; }
     public DateOnly StartDate { get; set; }
     public DateOnly EndDate { get; set; }
@@ -87,7 +84,6 @@ public class Internship
     // Navigation
     public User Student { get; set; } = null!;
     public User Advisor { get; set; } = null!;
-    public User? Supervisor { get; set; }
     public Company Company { get; set; } = null!;
     public TrainingPeriod TrainingPeriod { get; set; } = null!;
     public ICollection<Leave> Leaves { get; set; } = [];
@@ -171,7 +167,6 @@ public class WorkLog
     public string? Detail { get; set; }
     public string? Problem { get; set; }
     public string? Solution { get; set; }
-    public string Status { get; set; } = "draft"; // draft|submitted|approved|returned
     public DateTime CreatedAt { get; set; } = DateTime.Now;
     public DateTime? UpdatedAt { get; set; }
 
@@ -247,20 +242,6 @@ public class AdvisorVisit
     public User Advisor { get; set; } = null!;
 }
 
-// ─── ตารางที่ 15: Messages ───────────────────────────────
-public class Message
-{
-    public int MessageID { get; set; }
-    public int SenderID { get; set; }
-    public int ReceiverID { get; set; }
-    public string Content { get; set; } = string.Empty;
-    public bool IsRead { get; set; } = false;
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
-
-    // Navigation
-    public User Sender { get; set; } = null!;
-    public User Receiver { get; set; } = null!;
-}
 
 // ─── ตารางที่ 16: Notifications ──────────────────────────
 public class Notification

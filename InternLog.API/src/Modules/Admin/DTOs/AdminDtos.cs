@@ -55,7 +55,6 @@ public record AdminCreateInternshipDto(
     [Required] int StudentID,
     [Required] int CompanyID,
     [Required] int AdvisorID,
-    int? SupervisorID,
     [Required] DateOnly StartDate,
     [Required] DateOnly EndDate,
     int RequiredDays = 60

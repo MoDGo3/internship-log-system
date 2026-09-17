@@ -109,11 +109,11 @@
         <div class="report-item" *ngFor="let report of reportsList">
           <div class="report-icon">📄</div>
           <div class="report-info">
-            <h4>{{ report.title }}</h4>
-            <span>สร้างเมื่อ: {{ report.reportDateFormatted || (report.reportDate | date:'dd MMM yyyy') }}</span>
+            <h4>{{ report.periodLabel }}</h4>
+            <span>สร้างเมื่อ: {{ report.reportDateFormatted }} | สถานะ: {{ report.status }}</span>
           </div>
           <div class="report-actions">
-            <button class="btn-sm btn-outline" [routerLink]="['/reports', report.id, 'preview']">ดูตัวอย่าง</button>
+            <button class="btn-sm btn-outline" [routerLink]="['/reports', report.reportID, 'preview']">ดูตัวอย่าง</button>
             <button class="btn-sm btn-primary">ดาวน์โหลด</button>
           </div>
         </div>

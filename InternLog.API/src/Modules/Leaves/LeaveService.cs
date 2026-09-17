@@ -81,15 +81,12 @@ public class LeaveService : ILeaveService
 
     public async Task<IEnumerable<LeaveResponseDto>> GetPendingLeavesAsync()
     {
-        var reviewerId = _currentUser.UserId;
-
-        // Advisor/Supervisor logic: get students assigned to them
-        // For simplicity right now, since we don't have AdvisorVisits mapping fully implemented for "my students" yet,
-        // we'll return all pending leaves for this role. In the future, this should be filtered by Advisor/Supervisor.
         var leaves = await _context.Leaves
             .Include(l => l.Student)
             .Include(l => l.LeaveType)
-            .Where(l => l.Status == "pending")
+            .Include(l => l.Internship)
+            .Where(l => l.Status == "pending" &&
+                (_currentUser.Role == "admin" || l.Internship.AdvisorID == _currentUser.UserId))
             .OrderBy(l => l.CreatedAt)
             .ToListAsync();
 
@@ -103,14 +100,17 @@ public class LeaveService : ILeaveService
         if (request.EndDate < request.StartDate)
             throw AppException.BadRequest("วันที่สิ้นสุดต้องไม่ก่อนวันที่เริ่มต้น");
 
-        if (request.StartDate < DateOnly.FromDateTime(DateTime.Now))
+        // เปรียบเทียบ DateOnly กับ DateOnly เพื่ออนุญาตให้ลาวันนี้ได้
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        if (request.StartDate < today)
             throw AppException.BadRequest("ไม่สามารถขอลาย้อนหลังได้");
 
+        // กรอง internship ที่ active เท่านั้น
         var internship = await _context.Internships
-            .FirstOrDefaultAsync(i => i.StudentID == studentId);
+            .FirstOrDefaultAsync(i => i.StudentID == studentId && i.Status == "active");
 
         if (internship == null)
-            throw AppException.BadRequest("ไม่พบข้อมูลการฝึกงานของคุณ");
+            throw AppException.BadRequest("ไม่พบข้อมูลการฝึกงานที่กำลังดำเนินการอยู่");
 
         var leaveType = await _context.LeaveTypes.FindAsync(request.LeaveTypeID);
         if (leaveType == null)
@@ -176,6 +176,7 @@ public class LeaveService : ILeaveService
         var leave = await _context.Leaves
             .Include(l => l.Student)
             .Include(l => l.LeaveType)
+            .Include(l => l.Internship)
             .FirstOrDefaultAsync(l => l.LeaveID == leaveId);
 
         if (leave == null)
@@ -183,6 +184,9 @@ public class LeaveService : ILeaveService
 
         if (leave.Status != "pending")
             throw AppException.BadRequest($"ไม่สามารถรีวิวได้ เนื่องจากสถานะปัจจุบันคือ {leave.Status}");
+
+        if (_currentUser.Role != "admin" && leave.Internship.AdvisorID != _currentUser.UserId)
+            throw AppException.Forbidden("คุณไม่มีสิทธิ์รีวิวใบลาของนักศึกษาคนนี้");
 
         leave.Status = reviewDto.IsApproved ? "approved" : "rejected";
         leave.ReviewNote = reviewDto.ReviewNote;

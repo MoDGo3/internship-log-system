@@ -33,7 +33,7 @@
         <tr *ngFor="let user of users">
           <td>
             <div class="user-info">
-              <div class="avatar">{{ user.firstName?.charAt(0) || user.username?.charAt(0) }}</div>
+              <div class="avatar">{{ user.firstName.charAt(0) || user.username.charAt(0) }}</div>
               <span>{{ user.firstName }} {{ user.lastName }}</span>
             </div>
           </td>

@@ -13,15 +13,15 @@
           <div class="quota-header">
             <div class="quota-icon">📊</div>
             <div class="quota-info">
-              <h4>{{ q.type }}</h4>
-              <p>ใช้ไป {{ q.used }} / {{ q.total }} วัน</p>
+              <h4>{{ q.typeName }}</h4>
+              <p>ใช้ไป {{ q.usedDays }} / {{ q.maxDays }} วัน</p>
             </div>
             <div class="quota-remain">
-              เหลือ <strong>{{ q.total - q.used }}</strong> วัน
+              เหลือ <strong>{{ q.remainingDays }}</strong> วัน
             </div>
           </div>
           <div class="progress-bar">
-            <div class="progress-fill" [ngClass]="q.color" [style.width.%]="getQuotaPercentage(q.used, q.total)"></div>
+            <div class="progress-fill" [ngClass]="getQuotaColor(q.typeName)" [style.width.%]="getQuotaPercentage(q.usedDays, q.maxDays)"></div>
           </div>
         </div>
       </div>
@@ -36,12 +36,10 @@
         
         <form [formGroup]="leaveForm" (ngSubmit)="onSubmit()" class="leave-form">
           <div class="form-group">
-            <label for="leaveType">ประเภทการลา</label>
-            <select id="leaveType" formControlName="leaveType" class="form-control" [class.is-invalid]="leaveForm.get('leaveType')?.invalid && leaveForm.get('leaveType')?.touched">
+            <label for="leaveTypeID">ประเภทการลา</label>
+            <select id="leaveTypeID" formControlName="leaveTypeID" class="form-control" [class.is-invalid]="leaveForm.get('leaveTypeID')?.invalid && leaveForm.get('leaveTypeID')?.touched">
               <option value="">-- เลือกประเภทการลา --</option>
-              <option value="ลากิจ">ลากิจ</option>
-              <option value="ลาป่วย">ลาป่วย</option>
-              <option value="ลาพักร้อน">ลาพักร้อน</option>
+              <option *ngFor="let q of quotas" [value]="q.leaveTypeID">{{ q.typeName }}</option>
             </select>
           </div>
 
@@ -99,8 +97,8 @@
         <tbody>
           <tr *ngFor="let item of history">
             <td>{{ item.startDate | date:'dd/MM/yyyy' }} <span *ngIf="item.endDate && item.startDate !== item.endDate"> - {{ item.endDate | date:'dd/MM/yyyy' }}</span></td>
-            <td>{{ item.leaveType }}</td>
-            <td>-</td>
+            <td>{{ item.leaveTypeName }}</td>
+            <td>{{ item.dayCount }}</td>
             <td>{{ item.reason }}</td>
             <td>
               <span class="badge" [ngClass]="getStatusBadgeClass(item.status)">

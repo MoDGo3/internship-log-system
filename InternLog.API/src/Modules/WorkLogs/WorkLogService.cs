@@ -32,6 +32,12 @@ public class WorkLogService : IWorkLogService
         return attendance?.TotalHours;
     }
 
+    public async Task<IEnumerable<WorkCategoryDto>> GetCategoriesAsync()
+    {
+        var categories = await _context.WorkCategories.OrderBy(c => c.CategoryID).ToListAsync();
+        return categories.Select(c => new WorkCategoryDto(c.CategoryID, c.CategoryName));
+    }
+
     public async Task<IEnumerable<WorkLogResponseDto>> GetStudentLogsAsync()
     {
         var studentId = _currentUser.UserId;
@@ -47,15 +53,16 @@ public class WorkLogService : IWorkLogService
         return logs.Select(MapToDto);
     }
 
-    public async Task<IEnumerable<WorkLogResponseDto>> GetPendingLogsAsync()
+    public async Task<IEnumerable<WorkLogResponseDto>> GetAllLogsAsync()
     {
-        // Currently returns all submitted logs. Can be filtered by Advisor in future.
         var logs = await _context.WorkLogs
             .Include(l => l.Student)
             .Include(l => l.Category)
             .Include(l => l.Attachments)
             .Include(l => l.LogComments).ThenInclude(c => c.User)
-            .Where(l => l.Status == "submitted")
+            .Where(l => _currentUser.Role == "admin" ||
+                l.StudentID == _currentUser.UserId ||
+                _context.Internships.Any(i => i.StudentID == l.StudentID && i.AdvisorID == _currentUser.UserId))
             .OrderBy(l => l.LogDate)
             .ToListAsync();
 
@@ -74,14 +81,17 @@ public class WorkLogService : IWorkLogService
         if (log == null)
             throw AppException.NotFound("ไม่พบบันทึกการทำงานนี้");
 
-        // Permission check: if student, can only see own logs
+        // Enforce ownership for student and advisor access; admin is read-only.
         if (_currentUser.Role == "student" && log.StudentID != _currentUser.UserId)
             throw AppException.Forbidden("คุณไม่มีสิทธิ์เข้าถึงบันทึกการทำงานของผู้อื่น");
+        if (_currentUser.Role == "advisor" &&
+            !await _context.Internships.AnyAsync(i => i.StudentID == log.StudentID && i.AdvisorID == _currentUser.UserId))
+            throw AppException.Forbidden("คุณไม่มีสิทธิ์เข้าถึงบันทึกการทำงานของนักศึกษาคนนี้");
 
         return MapToDto(log);
     }
 
-    public async Task<WorkLogResponseDto> CreateLogAsync(WorkLogRequestDto request, bool isSubmit)
+    public async Task<WorkLogResponseDto> CreateLogAsync(WorkLogRequestDto request)
     {
         var studentId = _currentUser.UserId;
 
@@ -103,7 +113,6 @@ public class WorkLogService : IWorkLogService
             Detail = request.Detail,
             Problem = request.Problem,
             Solution = request.Solution,
-            Status = isSubmit ? "submitted" : "draft",
             CreatedAt = DateTime.Now
         };
 
@@ -133,9 +142,6 @@ public class WorkLogService : IWorkLogService
         if (log.StudentID != studentId)
             throw AppException.Forbidden("แก้ไขได้เฉพาะบันทึกการทำงานของตนเองเท่านั้น");
 
-        if (log.Status != "draft" && log.Status != "returned")
-            throw AppException.BadRequest($"ไม่สามารถแก้ไขได้ เนื่องจากสถานะปัจจุบันคือ {log.Status}");
-
         var category = await _context.WorkCategories.FindAsync(request.CategoryID);
         if (category == null)
             throw AppException.NotFound("ไม่พบหมวดหมู่งานนี้");
@@ -155,73 +161,46 @@ public class WorkLogService : IWorkLogService
         return MapToDto(log);
     }
 
-    public async Task<WorkLogResponseDto> SubmitLogAsync(int logId)
+    public async Task DeleteLogAsync(int logId)
     {
         var studentId = _currentUser.UserId;
-        var log = await _context.WorkLogs
-            .Include(l => l.Student)
-            .Include(l => l.Category)
-            .Include(l => l.Attachments)
-            .Include(l => l.LogComments).ThenInclude(c => c.User)
-            .FirstOrDefaultAsync(l => l.LogID == logId);
+        var log = await _context.WorkLogs.FirstOrDefaultAsync(l => l.LogID == logId);
 
         if (log == null)
             throw AppException.NotFound("ไม่พบบันทึกการทำงานนี้");
 
         if (log.StudentID != studentId)
-            throw AppException.Forbidden("ดำเนินการได้เฉพาะบันทึกการทำงานของตนเองเท่านั้น");
+            throw AppException.Forbidden("ลบได้เฉพาะบันทึกการทำงานของตนเองเท่านั้น");
 
-        if (log.Status != "draft" && log.Status != "returned")
-            throw AppException.BadRequest($"ไม่สามารถส่งตรวจได้ เนื่องจากสถานะคือ {log.Status}");
-
-        log.Status = "submitted";
-        log.UpdatedAt = DateTime.Now;
-
-        // Re-compute hours just in case attendance was updated
-        log.Hours = await GetComputedHoursAsync(studentId, log.LogDate);
-
+        _context.WorkLogs.Remove(log);
         await _context.SaveChangesAsync();
-
-        return MapToDto(log);
     }
 
-    public async Task<WorkLogResponseDto> ReviewLogAsync(int logId, ReviewLogDto reviewDto)
+
+    private bool IsValidFileSignature(IFormFile file, string extension)
     {
-        var reviewerId = _currentUser.UserId;
-        var log = await _context.WorkLogs
-            .Include(l => l.Student)
-            .Include(l => l.Category)
-            .Include(l => l.Attachments)
-            .Include(l => l.LogComments).ThenInclude(c => c.User)
-            .FirstOrDefaultAsync(l => l.LogID == logId);
-
-        if (log == null)
-            throw AppException.NotFound("ไม่พบบันทึกการทำงานนี้");
-
-        if (log.Status != "submitted")
-            throw AppException.BadRequest($"ไม่สามารถตรวจได้ เนื่องจากสถานะคือ {log.Status}");
-
-        log.Status = reviewDto.IsApproved ? "approved" : "returned";
-        log.UpdatedAt = DateTime.Now;
-
-        if (!string.IsNullOrWhiteSpace(reviewDto.Comment))
+        using var reader = new BinaryReader(file.OpenReadStream());
+        var signatures = new Dictionary<string, List<byte[]>>
         {
-            var comment = new LogComment
-            {
-                LogID = log.LogID,
-                UserID = reviewerId,
-                Comment = reviewDto.Comment ?? string.Empty,
-                CreatedAt = DateTime.Now
-            };
-            _context.LogComments.Add(comment);
-        }
+            { ".jpeg", new List<byte[]> { new byte[] { 0xFF, 0xD8, 0xFF } } },
+            { ".jpg", new List<byte[]> { new byte[] { 0xFF, 0xD8, 0xFF } } },
+            { ".png", new List<byte[]> { new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A } } },
+            { ".pdf", new List<byte[]> { new byte[] { 0x25, 0x50, 0x44, 0x46 } } },
+            { ".doc", new List<byte[]> { new byte[] { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 } } },
+            { ".docx", new List<byte[]> { new byte[] { 0x50, 0x4B, 0x03, 0x04 } } }
+        };
 
-        await _context.SaveChangesAsync();
-
-        // Reload log comments to include the newly added one
-        await _context.Entry(log).Collection(l => l.LogComments).Query().Include(c => c.User).LoadAsync();
-
-        return MapToDto(log);
+        if (!signatures.ContainsKey(extension)) return false;
+        
+        var allowedSignatures = signatures[extension];
+        var maxHeaderBytes = allowedSignatures.Max(m => m.Length);
+        
+        if (file.Length < maxHeaderBytes) return false;
+        
+        var headerBytes = reader.ReadBytes(maxHeaderBytes);
+        
+        return allowedSignatures.Any(signature => 
+            headerBytes.Take(signature.Length).SequenceEqual(signature));
     }
 
     public async Task<AttachmentResponseDto> UploadAttachmentAsync(int logId, IFormFile file)
@@ -235,8 +214,17 @@ public class WorkLogService : IWorkLogService
         if (log.StudentID != studentId)
             throw AppException.Forbidden("อัปโหลดไฟล์ได้เฉพาะบันทึกการทำงานของตนเองเท่านั้น");
 
-        if (log.Status != "draft" && log.Status != "returned")
-            throw AppException.BadRequest("ไม่สามารถอัปโหลดไฟล์ได้ในสถานะปัจจุบัน");
+        var maxFileSize = 5 * 1024 * 1024; // 5 MB
+        if (file.Length > maxFileSize)
+            throw AppException.BadRequest("ขนาดไฟล์ต้องไม่เกิน 5 MB");
+
+        var allowedExtensions = new[] { ".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx" };
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (!allowedExtensions.Contains(extension))
+            throw AppException.BadRequest("รองรับเฉพาะไฟล์ .pdf, .jpg, .png, .doc, .docx เท่านั้น");
+
+        if (!IsValidFileSignature(file, extension))
+            throw AppException.BadRequest("ไฟล์ไม่ถูกต้องตามนามสกุล (Invalid magic bytes)");
 
         var uploadsFolder = Path.Combine(_env.WebRootPath, "uploads", "worklogs");
         if (!Directory.Exists(uploadsFolder))
@@ -284,8 +272,6 @@ public class WorkLogService : IWorkLogService
         if (attachment.WorkLog.StudentID != studentId)
             throw AppException.Forbidden("สามารถลบได้เฉพาะไฟล์ของตนเองเท่านั้น");
 
-        if (attachment.WorkLog.Status != "draft" && attachment.WorkLog.Status != "returned")
-            throw AppException.BadRequest("ไม่สามารถลบไฟล์ได้ในสถานะปัจจุบัน");
 
         // Optionally delete the physical file
         var physicalPath = Path.Combine(_env.WebRootPath, attachment.FilePath.TrimStart('/'));
@@ -305,6 +291,9 @@ public class WorkLogService : IWorkLogService
 
         if (log == null)
             throw AppException.NotFound("ไม่พบบันทึกการทำงานนี้");
+
+        if (!await _context.Internships.AnyAsync(i => i.StudentID == log.StudentID && i.AdvisorID == userId))
+            throw AppException.Forbidden("คุณไม่มีสิทธิ์คอมเมนต์บันทึกการทำงานของนักศึกษาคนนี้");
 
         var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserID == userId);
         if (user == null)
@@ -362,7 +351,6 @@ public class WorkLogService : IWorkLogService
             log.Detail,
             log.Problem,
             log.Solution,
-            log.Status,
             log.CreatedAt,
             log.UpdatedAt,
             attachments,

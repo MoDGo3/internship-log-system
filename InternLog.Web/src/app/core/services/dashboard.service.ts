@@ -1,7 +1,9 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, throwError } from 'rxjs';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { DashboardSummary, CalendarDay } from '../../models/dashboard.model';
+import { ApiResponse } from '../../models/user.model';
 
 @Injectable({
   providedIn: 'root'
@@ -11,20 +13,15 @@ export class DashboardService {
 
   constructor(private http: HttpClient) {}
 
-  getDashboardSummary(): Observable<any> {
-    return this.http.get<any>(this.apiUrl).pipe(
-      catchError(this.handleError)
-    );
+  getDashboardSummary(): Observable<ApiResponse<DashboardSummary>> {
+    return this.http.get<ApiResponse<DashboardSummary>>(this.apiUrl);
   }
 
-  getCalendarEvents(): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/calendar`).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-  private handleError(error: any) {
-    console.error('An error occurred:', error);
-    return throwError(() => new Error(error.message || 'Server error'));
+  getCalendarEvents(year: number, month: number): Observable<ApiResponse<CalendarDay[]>> {
+    let params = new HttpParams()
+      .set('year', year.toString())
+      .set('month', month.toString());
+      
+    return this.http.get<ApiResponse<CalendarDay[]>>(`${this.apiUrl}/calendar`, { params });
   }
 }

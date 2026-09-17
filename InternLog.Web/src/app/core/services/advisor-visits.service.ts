@@ -1,7 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, throwError } from 'rxjs';
+import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { AdvisorVisitResponseDto, AdvisorVisitRequestDto } from '../../models/visit.model';
+import { ApiResponse } from '../../models/user.model';
 
 @Injectable({
   providedIn: 'root'
@@ -11,32 +13,19 @@ export class AdvisorVisitsService {
 
   constructor(private http: HttpClient) {}
 
-  getVisits(): Observable<any> {
-    return this.http.get<any>(this.apiUrl).pipe(
-      catchError(this.handleError)
-    );
+  getVisits(internshipId: number): Observable<ApiResponse<AdvisorVisitResponseDto[]>> {
+    return this.http.get<ApiResponse<AdvisorVisitResponseDto[]>>(`${this.apiUrl}?internshipId=${internshipId}`);
   }
 
-  getVisitById(id: string): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/${id}`).pipe(
-      catchError(this.handleError)
-    );
+  getVisitById(id: number): Observable<ApiResponse<AdvisorVisitResponseDto>> {
+    return this.http.get<ApiResponse<AdvisorVisitResponseDto>>(`${this.apiUrl}/${id}`);
   }
 
-  createVisit(data: any): Observable<any> {
-    return this.http.post<any>(this.apiUrl, data).pipe(
-      catchError(this.handleError)
-    );
+  createVisit(data: AdvisorVisitRequestDto): Observable<ApiResponse<AdvisorVisitResponseDto>> {
+    return this.http.post<ApiResponse<AdvisorVisitResponseDto>>(this.apiUrl, data);
   }
 
-  updateVisit(id: string, data: any): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/${id}`, data).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-  private handleError(error: any) {
-    console.error('An error occurred:', error);
-    return throwError(() => new Error(error.message || 'Server error'));
+  updateVisit(id: number, data: AdvisorVisitRequestDto): Observable<ApiResponse<AdvisorVisitResponseDto>> {
+    return this.http.put<ApiResponse<AdvisorVisitResponseDto>>(`${this.apiUrl}/${id}`, data);
   }
 }

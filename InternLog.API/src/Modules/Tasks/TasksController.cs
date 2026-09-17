@@ -17,7 +17,7 @@ public class TasksController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "student,advisor,supervisor")]
+    [Authorize(Roles = "student,advisor,admin")]
     public async Task<IActionResult> GetTasks()
     {
         var tasks = await _taskService.GetTasksAsync();
@@ -25,7 +25,7 @@ public class TasksController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    [Authorize(Roles = "student,advisor,supervisor")]
+    [Authorize(Roles = "student,advisor,admin")]
     public async Task<IActionResult> GetTaskDetail(int id)
     {
         var task = await _taskService.GetTaskDetailAsync(id);
@@ -33,7 +33,7 @@ public class TasksController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "advisor,supervisor")]
+    [Authorize(Roles = "advisor,admin")]
     public async Task<IActionResult> CreateTask([FromBody] TaskRequestDto request)
     {
         var result = await _taskService.CreateTaskAsync(request);
@@ -41,7 +41,7 @@ public class TasksController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "advisor,supervisor")]
+    [Authorize(Roles = "advisor,admin")]
     public async Task<IActionResult> UpdateTask(int id, [FromBody] TaskRequestDto request)
     {
         var result = await _taskService.UpdateTaskAsync(id, request);
@@ -49,7 +49,7 @@ public class TasksController : ControllerBase
     }
 
     [HttpPut("{id}/status")]
-    [Authorize(Roles = "student,advisor,supervisor")]
+    [Authorize(Roles = "student,advisor,admin")]
     public async Task<IActionResult> UpdateTaskStatus(int id, [FromBody] TaskStatusUpdateDto request)
     {
         var result = await _taskService.UpdateTaskStatusAsync(id, request);
@@ -57,7 +57,7 @@ public class TasksController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "advisor,supervisor")]
+    [Authorize(Roles = "advisor,admin")]
     public async Task<IActionResult> DeleteTask(int id)
     {
         await _taskService.DeleteTaskAsync(id);

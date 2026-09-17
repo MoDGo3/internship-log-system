@@ -3,8 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { ReportsService } from '../../../core/services/reports.service';
-import { ReportRecord, ReportSummaryDto } from '../../../models/report.model';
+import { ReportResponseDto, ReportGenerateRequestDto } from '../../../models/report.model';
 import { format } from 'date-fns';
+
+interface ReportVM extends ReportResponseDto {
+  reportDateFormatted: string;
+}
 
 @Component({
   selector: 'app-reports-page',
@@ -15,51 +19,42 @@ import { format } from 'date-fns';
 })
 export class ReportsPageComponent implements OnInit {
   selectedPeriod = 'all';
+  internshipID = 1; // Temporary hardcoded or from state
   
-  // Summary Data
-  summary: ReportSummaryDto = {
-    totalHours: 0,
-    attendanceDays: 0,
-    leaveDays: 0,
-    categoryBreakdown: {}
+  // Summary Data Mocked for UI since Backend doesn't provide it directly in Reports API
+  summary = {
+    totalHours: 320,
+    attendanceDays: 45,
+    leaveDays: 2,
+    categoryBreakdown: {
+      'Frontend': 120,
+      'Backend': 100,
+      'Database': 40,
+      'Meeting': 60
+    }
   };
 
   chartData: any[] = [];
-  reportsList: ReportRecord[] = [];
+  reportsList: ReportVM[] = [];
 
   constructor(private reportsService: ReportsService) {}
 
   ngOnInit() {
-    this.loadSummary();
+    this.prepareChartData(this.summary.categoryBreakdown);
     this.loadReports();
   }
 
-  loadSummary() {
-    this.reportsService.getSummary().subscribe({
-      next: (res: any) => {
-        const data = res.data;
-        if (data) {
-          this.summary = data;
-          this.prepareChartData(data.categoryBreakdown);
-        }
-      },
-      error: (err: any) => console.error('Failed to load report summary', err)
-    });
-  }
-
   loadReports() {
-    this.reportsService.getReports().subscribe({
-      next: (res: any) => {
-        const data = res.data;
-        if (data) {
-          this.reportsList = data.map((r: any) => ({
+    this.reportsService.getReports(this.internshipID).subscribe({
+      next: (res) => {
+        if (res.success && res.data) {
+          this.reportsList = res.data.map((r: ReportResponseDto) => ({
             ...r,
-            id: r.reportID,
-            reportDateFormatted: r.reportDate ? format(new Date(r.reportDate), 'dd MMM yyyy') : '-'
+            reportDateFormatted: r.createdAt ? format(new Date(r.createdAt), 'dd MMM yyyy') : '-'
           }));
         }
       },
-      error: (err: any) => console.error('Failed to load reports', err)
+      error: (err) => console.error('Failed to load reports', err)
     });
   }
 
@@ -68,8 +63,7 @@ export class ReportsPageComponent implements OnInit {
     const colors = ['var(--primary)', '#8B5CF6', '#F59E0B', '#10B981', '#6B7280'];
     let index = 0;
     
-    // Find max value to calculate percentage for CSS bar height, or just use sum if you want relative to total hours
-    const maxHours = Math.max(...Object.values(breakdown), 50); // Fallback to 50 if empty
+    const maxHours = Math.max(...Object.values(breakdown), 50); 
 
     this.chartData = Object.keys(breakdown).map(key => {
       const hours = breakdown[key];
@@ -78,20 +72,29 @@ export class ReportsPageComponent implements OnInit {
       return {
         label: key,
         hours: hours,
-        percent: (hours / maxHours) * 100, // height percentage relative to max
+        percent: (hours / maxHours) * 100,
         color: color
       };
     });
   }
 
   generateReport() {
-    alert('กำลังสร้างรายงานใหม่...');
-    this.reportsService.generateReport({}).subscribe({
-      next: () => {
-        alert('สร้างรายงานสำเร็จ');
-        this.loadReports();
+    const today = new Date();
+    const req: ReportGenerateRequestDto = {
+      internshipID: this.internshipID,
+      periodLabel: `Week of ${format(today, 'dd MMM yyyy')}`,
+      startDate: format(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7), 'yyyy-MM-dd'),
+      endDate: format(today, 'yyyy-MM-dd')
+    };
+
+    this.reportsService.generateReport(req).subscribe({
+      next: (res) => {
+        if (res.success) {
+          alert('สร้างรายงานสำเร็จ');
+          this.loadReports();
+        }
       },
-      error: (err: any) => alert('เกิดข้อผิดพลาดในการสร้างรายงาน: ' + err.message)
+      error: (err) => alert('เกิดข้อผิดพลาดในการสร้างรายงาน: ' + err.message)
     });
   }
 }

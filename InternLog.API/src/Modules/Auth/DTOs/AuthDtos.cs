@@ -38,6 +38,12 @@ public record ResetPasswordRequest(
     [Required][MinLength(8)] string NewPassword
 );
 
+public record UpdateProfileRequest(
+    [Required][MaxLength(100)] string FirstName,
+    [Required][MaxLength(100)] string LastName,
+    [MaxLength(20)] string? Phone
+);
+
 // ─── Response DTOs ───────────────────────────────────────────────────────────
 
 public record UserDto(

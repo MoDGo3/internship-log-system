@@ -75,7 +75,17 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse<UserDto>.Ok(result));
     }
 
-    // ─── PUT /api/auth/change-password ───────────────────────────────────────
+    // ─── PUT /api/auth/me ────────────────────────────────────────────────────
+    /// <summary>อัปเดตข้อมูลส่วนตัว (ชื่อ, นามสกุล, เบอร์โทร)</summary>
+    [HttpPut("me")]
+    [Authorize]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest req)
+    {
+        var result = await _auth.UpdateProfileAsync(_currentUser.UserId, req);
+        return Ok(ApiResponse<UserDto>.Ok(result, "อัปเดตข้อมูลสำเร็จ"));
+    }
+
+
     /// <summary>เปลี่ยนรหัสผ่าน (ต้อง login แล้ว)</summary>
     [HttpPut("change-password")]
     [Authorize]

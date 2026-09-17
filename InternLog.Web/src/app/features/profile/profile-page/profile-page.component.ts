@@ -1,6 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AuthService } from '../../../core/auth/auth.service';
+import { User } from '../../../models/user.model';
+import { DashboardService } from '../../../core/services/dashboard.service';
 
 @Component({
   selector: 'app-profile-page',
@@ -9,16 +12,10 @@ import { FormsModule } from '@angular/forms';
   templateUrl: './profile-page.component.html',
   styleUrls: ['./profile-page.component.scss']
 })
-export class ProfilePageComponent {
+export class ProfilePageComponent implements OnInit {
   
-  profile = {
-    firstName: 'สมชาย',
-    lastName: 'ใจดี',
-    studentId: '641234567',
-    email: 'somchai.j@student.ac.th',
-    phone: '081-234-5678',
-    avatar: ''
-  };
+  profile: Partial<User> = {};
+  isLoading = false;
 
   internship = {
     company: 'บริษัท เอบีซี เทคโนโลยี จำกัด',
@@ -33,20 +30,56 @@ export class ProfilePageComponent {
     confirm: ''
   };
 
+  constructor(
+    private authService: AuthService,
+    private dashboardService: DashboardService
+  ) {}
+
+  ngOnInit() {
+    this.authService.getMe().subscribe({
+      next: (res) => {
+        if (res.success && res.data) {
+          this.profile = res.data;
+        }
+      },
+      error: (err) => console.error('Failed to load profile', err)
+    });
+  }
+
   saveProfile() {
-    alert('บันทึกข้อมูลส่วนตัวสำเร็จ');
+    alert('ระบบยังไม่รองรับการแก้ไขข้อมูลส่วนตัวในเวอร์ชันนี้');
   }
 
   changePassword() {
+    if (!this.passwords.current || !this.passwords.new || !this.passwords.confirm) {
+      alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+      return;
+    }
     if (this.passwords.new !== this.passwords.confirm) {
       alert('รหัสผ่านใหม่ไม่ตรงกัน');
       return;
     }
-    alert('เปลี่ยนรหัสผ่านสำเร็จ');
-    this.passwords = { current: '', new: '', confirm: '' };
+
+    this.isLoading = true;
+    this.authService.changePassword({
+      oldPassword: this.passwords.current,
+      newPassword: this.passwords.new,
+      confirmPassword: this.passwords.confirm
+    }).subscribe({
+      next: (res) => {
+        this.isLoading = false;
+        alert(res.message || 'เปลี่ยนรหัสผ่านสำเร็จ');
+        this.passwords = { current: '', new: '', confirm: '' };
+        this.authService.logout(); // Typically force re-login
+      },
+      error: (err) => {
+        this.isLoading = false;
+        alert('เปลี่ยนรหัสผ่านไม่สำเร็จ: ' + err.message);
+      }
+    });
   }
 
   uploadAvatar() {
-    alert('เปิดหน้าต่างเลือกไฟล์รูปภาพ');
+    alert('ฟังก์ชันอัปโหลดรูปภาพกำลังอยู่ระหว่างการพัฒนา');
   }
 }

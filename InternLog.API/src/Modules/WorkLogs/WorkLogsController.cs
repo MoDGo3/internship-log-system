@@ -17,6 +17,14 @@ public class WorkLogsController : ControllerBase
         _workLogService = workLogService;
     }
 
+    [HttpGet("categories")]
+    [Authorize]
+    public async Task<IActionResult> GetCategories()
+    {
+        var categories = await _workLogService.GetCategoriesAsync();
+        return Ok(ApiResponse<IEnumerable<WorkCategoryDto>>.Ok(categories));
+    }
+
     [HttpGet]
     [Authorize(Roles = "student")]
     public async Task<IActionResult> GetStudentLogs()
@@ -25,16 +33,16 @@ public class WorkLogsController : ControllerBase
         return Ok(ApiResponse<IEnumerable<WorkLogResponseDto>>.Ok(logs));
     }
 
-    [HttpGet("pending")]
-    [Authorize(Roles = "advisor,supervisor")]
-    public async Task<IActionResult> GetPendingLogs()
+    [HttpGet("all")]
+    [Authorize(Roles = "advisor,admin")]
+    public async Task<IActionResult> GetAllLogs()
     {
-        var logs = await _workLogService.GetPendingLogsAsync();
+        var logs = await _workLogService.GetAllLogsAsync();
         return Ok(ApiResponse<IEnumerable<WorkLogResponseDto>>.Ok(logs));
     }
 
     [HttpGet("{id}")]
-    [Authorize(Roles = "student,advisor,supervisor")]
+    [Authorize(Roles = "student,advisor,admin")]
     public async Task<IActionResult> GetLogDetail(int id)
     {
         var log = await _workLogService.GetLogDetailAsync(id);
@@ -43,11 +51,10 @@ public class WorkLogsController : ControllerBase
 
     [HttpPost]
     [Authorize(Roles = "student")]
-    public async Task<IActionResult> CreateLog([FromBody] WorkLogRequestDto request, [FromQuery] bool submit = false)
+    public async Task<IActionResult> CreateLog([FromBody] WorkLogRequestDto request)
     {
-        var result = await _workLogService.CreateLogAsync(request, submit);
-        var msg = submit ? "สร้างและส่งตรวจบันทึกการทำงานเรียบร้อย" : "บันทึกร่างเรียบร้อย";
-        return CreatedAtAction(nameof(GetLogDetail), new { id = result.LogID }, ApiResponse<WorkLogResponseDto>.Ok(result, msg));
+        var result = await _workLogService.CreateLogAsync(request);
+        return CreatedAtAction(nameof(GetLogDetail), new { id = result.LogID }, ApiResponse<WorkLogResponseDto>.Ok(result, "บันทึกงานเรียบร้อย"));
     }
 
     [HttpPut("{id}")]
@@ -58,21 +65,12 @@ public class WorkLogsController : ControllerBase
         return Ok(ApiResponse<WorkLogResponseDto>.Ok(result, "แก้ไขบันทึกการทำงานเรียบร้อย"));
     }
 
-    [HttpPut("{id}/submit")]
+    [HttpDelete("{id}")]
     [Authorize(Roles = "student")]
-    public async Task<IActionResult> SubmitLog(int id)
+    public async Task<IActionResult> DeleteLog(int id)
     {
-        var result = await _workLogService.SubmitLogAsync(id);
-        return Ok(ApiResponse<WorkLogResponseDto>.Ok(result, "ส่งตรวจบันทึกการทำงานเรียบร้อย"));
-    }
-
-    [HttpPut("{id}/review")]
-    [Authorize(Roles = "advisor,supervisor")]
-    public async Task<IActionResult> ReviewLog(int id, [FromBody] ReviewLogDto request)
-    {
-        var result = await _workLogService.ReviewLogAsync(id, request);
-        var msg = request.IsApproved ? "อนุมัติบันทึกการทำงาน" : "ตีกลับให้แก้ไข";
-        return Ok(ApiResponse<WorkLogResponseDto>.Ok(result, msg));
+        await _workLogService.DeleteLogAsync(id);
+        return Ok(ApiResponse<object>.Ok(null!, "ลบบันทึกการทำงานเรียบร้อย"));
     }
 
     [HttpPost("{id}/attachments")]
@@ -92,7 +90,7 @@ public class WorkLogsController : ControllerBase
     }
 
     [HttpPost("{id}/comments")]
-    [Authorize(Roles = "student,advisor,supervisor")]
+    [Authorize(Roles = "advisor,admin")]
     public async Task<IActionResult> AddComment(int id, [FromBody] CommentRequestDto request)
     {
         var result = await _workLogService.AddCommentAsync(id, request);

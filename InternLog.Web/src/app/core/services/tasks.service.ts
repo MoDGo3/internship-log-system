@@ -1,7 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, throwError } from 'rxjs';
+import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { TaskResponseDto, TaskRequestDto } from '../../models/task.model';
+import { ApiResponse } from '../../models/user.model';
 
 @Injectable({
   providedIn: 'root'
@@ -11,44 +13,27 @@ export class TasksService {
 
   constructor(private http: HttpClient) {}
 
-  getTasks(): Observable<any> {
-    return this.http.get<any>(this.apiUrl).pipe(
-      catchError(this.handleError)
-    );
+  getTasks(): Observable<ApiResponse<TaskResponseDto[]>> {
+    return this.http.get<ApiResponse<TaskResponseDto[]>>(this.apiUrl);
   }
 
-  getTaskById(id: string): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/${id}`).pipe(
-      catchError(this.handleError)
-    );
+  getTaskById(id: number): Observable<ApiResponse<TaskResponseDto>> {
+    return this.http.get<ApiResponse<TaskResponseDto>>(`${this.apiUrl}/${id}`);
   }
 
-  createTask(data: any): Observable<any> {
-    return this.http.post<any>(this.apiUrl, data).pipe(
-      catchError(this.handleError)
-    );
+  createTask(data: TaskRequestDto): Observable<ApiResponse<TaskResponseDto>> {
+    return this.http.post<ApiResponse<TaskResponseDto>>(this.apiUrl, data);
   }
 
-  updateTask(id: string, data: any): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/${id}`, data).pipe(
-      catchError(this.handleError)
-    );
+  updateTask(id: number, data: TaskRequestDto): Observable<ApiResponse<TaskResponseDto>> {
+    return this.http.put<ApiResponse<TaskResponseDto>>(`${this.apiUrl}/${id}`, data);
   }
 
-  updateTaskStatus(id: string, status: any): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/${id}/status`, status).pipe(
-      catchError(this.handleError)
-    );
+  updateTaskStatus(id: number, status: string): Observable<ApiResponse<any>> {
+    return this.http.put<ApiResponse<any>>(`${this.apiUrl}/${id}/status`, { status });
   }
 
-  deleteTask(id: string): Observable<any> {
-    return this.http.delete<any>(`${this.apiUrl}/${id}`).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-  private handleError(error: any) {
-    console.error('An error occurred:', error);
-    return throwError(() => new Error(error.message || 'Server error'));
+  deleteTask(id: number): Observable<ApiResponse<any>> {
+    return this.http.delete<ApiResponse<any>>(`${this.apiUrl}/${id}`);
   }
 }

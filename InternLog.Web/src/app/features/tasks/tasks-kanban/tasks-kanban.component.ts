@@ -2,8 +2,17 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TasksService } from '../../../core/services/tasks.service';
-import { TaskRecord } from '../../../models/task.model';
+import { TaskResponseDto } from '../../../models/task.model';
 import { format } from 'date-fns';
+
+interface TaskVM {
+  id: number;
+  title: string;
+  status: string;
+  priority: string;
+  dueDate: string;
+  assigneeName: string;
+}
 
 @Component({
   selector: 'app-tasks-kanban',
@@ -13,8 +22,8 @@ import { format } from 'date-fns';
   styleUrls: ['./tasks-kanban.component.scss']
 })
 export class TasksKanbanComponent implements OnInit {
-  tasks: any[] = [];
-  draggedTask: any | null = null;
+  tasks: TaskVM[] = [];
+  draggedTask: TaskVM | null = null;
 
   constructor(private tasksService: TasksService) {}
 
@@ -25,15 +34,14 @@ export class TasksKanbanComponent implements OnInit {
   loadTasks() {
     this.tasksService.getTasks().subscribe({
       next: (res) => {
-        const data = res.data;
-        if (data) {
-          this.tasks = data.map((t: TaskRecord) => ({
+        if (res.success && res.data) {
+          this.tasks = res.data.map((t: TaskResponseDto) => ({
             id: t.taskID,
             title: t.title,
-            status: t.status?.toLowerCase() || 'todo', // Map Backend status to UI status if needed
+            status: t.status?.toLowerCase() || 'todo',
             priority: t.priority?.toLowerCase() || 'medium',
             dueDate: t.dueDate ? format(new Date(t.dueDate), 'dd MMM yy') : '-',
-            assigneeName: t.assignedBy || 'ไม่ระบุ'
+            assigneeName: t.assignerName || 'ไม่ระบุ'
           }));
         }
       },
@@ -41,7 +49,7 @@ export class TasksKanbanComponent implements OnInit {
     });
   }
 
-  getTasksByStatus(status: 'todo' | 'doing' | 'done'): any[] {
+  getTasksByStatus(status: 'todo' | 'doing' | 'done'): TaskVM[] {
     return this.tasks.filter(t => t.status === status);
   }
 
@@ -64,7 +72,7 @@ export class TasksKanbanComponent implements OnInit {
   }
 
   // --- HTML5 Drag & Drop ---
-  onDragStart(task: any) {
+  onDragStart(task: TaskVM) {
     this.draggedTask = task;
   }
 
@@ -79,11 +87,17 @@ export class TasksKanbanComponent implements OnInit {
       if (oldStatus !== newStatus) {
         this.draggedTask.status = newStatus;
         // Update API
-        this.tasksService.updateTaskStatus(this.draggedTask.id, { status: newStatus }).subscribe({
-          next: () => console.log('Task status updated to', newStatus),
+        this.tasksService.updateTaskStatus(this.draggedTask.id, newStatus).subscribe({
+          next: (res) => {
+            if (res.success) {
+              console.log('Task status updated to', newStatus);
+            }
+          },
           error: (err) => {
             console.error('Failed to update task status', err);
-            this.draggedTask.status = oldStatus; // Revert on failure
+            if (this.draggedTask) {
+              this.draggedTask.status = oldStatus; // Revert on failure
+            }
             alert('อัปเดตสถานะไม่สำเร็จ: ' + err.message);
           }
         });
@@ -96,7 +110,7 @@ export class TasksKanbanComponent implements OnInit {
     alert('เปิดหน้าต่างมอบหมายงาน');
   }
 
-  viewTask(task: any) {
+  viewTask(task: TaskVM) {
     alert(`เปิดรายละเอียดงาน: ${task.title}`);
   }
 }

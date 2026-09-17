@@ -280,9 +280,6 @@ namespace InternLog.API.Migrations
                     b.Property<int>("StudentID")
                         .HasColumnType("int");
 
-                    b.Property<int?>("SupervisorID")
-                        .HasColumnType("int");
-
                     b.HasKey("InternshipID");
 
                     b.HasIndex("AdvisorID");
@@ -292,8 +289,6 @@ namespace InternLog.API.Migrations
                     b.HasIndex("PeriodID");
 
                     b.HasIndex("StudentID");
-
-                    b.HasIndex("SupervisorID");
 
                     b.ToTable("Internships", (string)null);
                 });
@@ -431,43 +426,6 @@ namespace InternLog.API.Migrations
                     b.HasIndex("UserID");
 
                     b.ToTable("LogComments", (string)null);
-                });
-
-            modelBuilder.Entity("InternLog.API.Infrastructure.Data.Models.Message", b =>
-                {
-                    b.Property<int>("MessageID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MessageID"));
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETDATE()");
-
-                    b.Property<bool>("IsRead")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<int>("ReceiverID")
-                        .HasColumnType("int");
-
-                    b.Property<int>("SenderID")
-                        .HasColumnType("int");
-
-                    b.HasKey("MessageID");
-
-                    b.HasIndex("ReceiverID");
-
-                    b.HasIndex("SenderID");
-
-                    b.ToTable("Messages", (string)null);
                 });
 
             modelBuilder.Entity("InternLog.API.Infrastructure.Data.Models.Notification", b =>
@@ -845,7 +803,7 @@ namespace InternLog.API.Migrations
                             FirstName = "System",
                             IsActive = true,
                             LastName = "Admin",
-                            PasswordHash = "$2a$11$TUXumzs49/uqLJpb3Vd1YOtXKQ2Cu3tmL8AGeodrjdpdgMtfLbeSK",
+                            PasswordHash = "$2a$11$g1ogqNx9nv7.mhSU0mPhyOfrhqoJn2Y1Nd7IiZCVa0/JdE../UQPW",
                             RoleID = 4
                         });
                 });
@@ -925,13 +883,6 @@ namespace InternLog.API.Migrations
 
                     b.Property<string>("Solution")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasDefaultValue("draft");
 
                     b.Property<int>("StudentID")
                         .HasColumnType("int");
@@ -1031,18 +982,11 @@ namespace InternLog.API.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("InternLog.API.Infrastructure.Data.Models.User", "Supervisor")
-                        .WithMany()
-                        .HasForeignKey("SupervisorID")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.Navigation("Advisor");
 
                     b.Navigation("Company");
 
                     b.Navigation("Student");
-
-                    b.Navigation("Supervisor");
 
                     b.Navigation("TrainingPeriod");
                 });
@@ -1091,25 +1035,6 @@ namespace InternLog.API.Migrations
                     b.Navigation("User");
 
                     b.Navigation("WorkLog");
-                });
-
-            modelBuilder.Entity("InternLog.API.Infrastructure.Data.Models.Message", b =>
-                {
-                    b.HasOne("InternLog.API.Infrastructure.Data.Models.User", "Receiver")
-                        .WithMany("ReceivedMessages")
-                        .HasForeignKey("ReceiverID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("InternLog.API.Infrastructure.Data.Models.User", "Sender")
-                        .WithMany("SentMessages")
-                        .HasForeignKey("SenderID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Receiver");
-
-                    b.Navigation("Sender");
                 });
 
             modelBuilder.Entity("InternLog.API.Infrastructure.Data.Models.Notification", b =>
@@ -1254,11 +1179,7 @@ namespace InternLog.API.Migrations
 
                     b.Navigation("PasswordResetTokens");
 
-                    b.Navigation("ReceivedMessages");
-
                     b.Navigation("RefreshTokens");
-
-                    b.Navigation("SentMessages");
                 });
 
             modelBuilder.Entity("InternLog.API.Infrastructure.Data.Models.WorkCategory", b =>

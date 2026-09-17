@@ -26,7 +26,7 @@ public class DashboardService : IDashboardService
         int pendingLeaves = 0;
         int pendingReports = 0;
         
-        int unreadMessages = await _context.Messages.CountAsync(m => m.ReceiverID == userId && !m.IsRead);
+        int unreadMessages = 0;
         int unreadNotifications = await _context.Notifications.CountAsync(n => n.UserID == userId && !n.IsRead);
 
         if (role == "student")
@@ -43,13 +43,6 @@ public class DashboardService : IDashboardService
             activeInternships = await _context.Internships.CountAsync(i => i.AdvisorID == userId && i.EndDate >= DateOnly.FromDateTime(DateTime.Today));
             
             pendingReports = await _context.Reports.CountAsync(r => r.Internship.AdvisorID == userId && r.Status == "submitted");
-        }
-        else if (role == "supervisor")
-        {
-            totalInternships = await _context.Internships.CountAsync(i => i.SupervisorID == userId);
-            activeInternships = await _context.Internships.CountAsync(i => i.SupervisorID == userId && i.EndDate >= DateOnly.FromDateTime(DateTime.Today));
-            
-            pendingLeaves = await _context.Leaves.CountAsync(l => l.Internship.SupervisorID == userId && l.Status == "pending");
         }
         else if (role == "admin")
         {

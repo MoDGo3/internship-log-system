@@ -13,8 +13,10 @@ public interface IAuthService
     Task<LoginResponse> RefreshAsync(string refreshToken);
     Task LogoutAsync(string refreshToken);
     Task<UserDto> GetMeAsync(int userId);
+    Task<UserDto> UpdateProfileAsync(int userId, UpdateProfileRequest req);
     Task ChangePasswordAsync(int userId, ChangePasswordRequest req);
     Task ForgotPasswordAsync(string email);
     Task ResetPasswordAsync(ResetPasswordRequest req);
     Task<bool> EmailExistsAsync(string email);
 }
+

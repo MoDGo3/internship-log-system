@@ -24,10 +24,11 @@
              (click)="markAsRead(notif)">
           
           <div class="notif-icon">
-            {{ getIcon(notif.type) }}
+            {{ getIcon(notif.title) }}
           </div>
           
           <div class="notif-content">
+            <h4>{{ notif.title }}</h4>
             <p>{{ notif.message }}</p>
             <span class="notif-time">{{ notif.time }}</span>
           </div>

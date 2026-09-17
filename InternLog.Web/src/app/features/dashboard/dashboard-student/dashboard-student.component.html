@@ -51,10 +51,21 @@
         <h3>ลงเวลาวันนี้ ({{ currentDate }})</h3>
       </div>
       <div class="attendance-content">
+        <!-- Inline Alert Notification -->
+        <div *ngIf="actionMessage" class="alert-box" [ngClass]="'alert-' + actionMessage.type">
+          {{ actionMessage.text }}
+        </div>
+        
         <div class="clock-display">{{ currentTime }}</div>
         <div class="action-buttons">
-          <button class="btn-check-in" (click)="checkIn()">⬇ ลงเวลาเข้า</button>
-          <button class="btn-check-out" (click)="checkOut()">⬆ ลงเวลาออก</button>
+          <button class="btn-check-in" (click)="checkIn()" [disabled]="hasCheckedInToday" [class.opacity-50]="hasCheckedInToday" [class.cursor-not-allowed]="hasCheckedInToday">
+            <ng-container *ngIf="hasCheckedInToday">✅ ลงเวลาเข้าแล้ว</ng-container>
+            <ng-container *ngIf="!hasCheckedInToday">⬇ ลงเวลาเข้า</ng-container>
+          </button>
+          <button class="btn-check-out" (click)="checkOut()" [disabled]="!hasCheckedInToday || hasCheckedOutToday" [class.opacity-50]="!hasCheckedInToday || hasCheckedOutToday" [class.cursor-not-allowed]="!hasCheckedInToday || hasCheckedOutToday">
+            <ng-container *ngIf="hasCheckedOutToday">✅ ลงเวลาออกแล้ว</ng-container>
+            <ng-container *ngIf="!hasCheckedOutToday">⬆ ลงเวลาออก</ng-container>
+          </button>
         </div>
       </div>
     </div>
@@ -90,7 +101,6 @@
             <th>วันที่</th>
             <th>ชื่องาน</th>
             <th>ชม.</th>
-            <th>สถานะ</th>
             <th>การจัดการ</th>
           </tr>
         </thead>
@@ -99,11 +109,6 @@
             <td>{{ log.date }}</td>
             <td>{{ log.title }}</td>
             <td>{{ log.hours }}</td>
-            <td>
-              <span class="badge" [ngClass]="getStatusBadgeClass(log.status)">
-                {{ getStatusText(log.status) }}
-              </span>
-            </td>
             <td>
               <button class="btn-icon" title="ดูรายละเอียด">👁</button>
             </td>

@@ -34,11 +34,8 @@ public class AttendanceService : IAttendanceService
         if (attendance != null && attendance.CheckInTime != null)
             throw AppException.BadRequest("คุณได้ลงเวลาเข้างานของวันนี้ไปแล้ว");
 
+        // ตามสเปกใหม่ (27 ส.ค. 2026): ยกเลิกการคำนวณการมาสาย ให้สถานะ check-in เป็น "ontime" เสมอ
         var status = "ontime";
-        if (timeNow > internship.Company.WorkStartTime)
-        {
-            status = "late";
-        }
 
         if (attendance == null)
         {
@@ -169,11 +166,10 @@ public class AttendanceService : IAttendanceService
         var activeInternship = await _context.Internships
             .FirstOrDefaultAsync(i => i.StudentID == attendance.StudentID && i.Status == "active");
         
-        // ตรวจสอบสิทธิ์ว่า Reviewer เป็น Advisor หรือ Supervisor ของเด็กคนนี้หรือไม่
-        if (activeInternship != null && activeInternship.AdvisorID != reviewerId && activeInternship.SupervisorID != reviewerId)
+        // ตรวจสอบสิทธิ์ว่า Reviewer เป็น Advisor ของนักศึกษาคนนี้หรือไม่
+        if (activeInternship != null && activeInternship.AdvisorID != reviewerId)
         {
-            // ข้ามการตรวจสิทธิ์ชั่วคราวถ้าระบบยังไม่สมบูรณ์ แต่หลักการคือควรเป็น Advisor/Supervisor เท่านั้น
-            // throw AppException.Forbidden("คุณไม่มีสิทธิ์ตรวจสอบข้อมูลของนักศึกษาคนนี้");
+            throw AppException.Forbidden("คุณไม่มีสิทธิ์ตรวจสอบข้อมูลของนักศึกษาคนนี้");
         }
 
         if (dto.IsApproved)

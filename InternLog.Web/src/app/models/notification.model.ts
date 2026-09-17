@@ -1,8 +1,9 @@
-export interface NotificationRecord {
+export interface NotificationResponseDto {
   notificationID: number;
   userID: number;
+  title: string;
   message: string;
-  type: string;
+  link?: string;
   isRead: boolean;
   createdAt: string;
 }

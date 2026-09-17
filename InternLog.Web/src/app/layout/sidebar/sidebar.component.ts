@@ -11,10 +11,10 @@ import { AuthService } from '../../core/auth/auth.service';
   styleUrls: ['./sidebar.component.scss']
 })
 export class SidebarComponent {
-  
-  isAdmin = computed(() => {
-    return this.authService.hasRole(['admin']);
-  });
+  userRole = computed(() => this.authService.currentUser()?.role ?? null);
+  isStudent = computed(() => this.userRole() === 'student');
+  isAdvisor = computed(() => this.userRole() === 'advisor');
+  isAdmin = computed(() => this.userRole() === 'admin');
 
   constructor(private authService: AuthService) {}
 

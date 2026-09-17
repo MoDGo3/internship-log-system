@@ -1,10 +1,12 @@
 export interface User {
-  id: number;
+  userID: number;
   email: string;
   firstName: string;
   lastName: string;
-  role: 'student' | 'advisor' | 'supervisor' | 'admin';
-  studentId?: string; // Only for students
+  role: string;
+  studentID?: string;
+  phone?: string;
+  profileImage?: string;
 }
 
 export interface AuthResponse {

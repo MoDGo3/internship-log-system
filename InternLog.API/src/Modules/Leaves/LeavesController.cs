@@ -34,7 +34,7 @@ public class LeavesController : ControllerBase
     }
 
     [HttpGet("pending")]
-    [Authorize(Roles = "advisor,supervisor")]
+    [Authorize(Roles = "advisor")]
     public async Task<IActionResult> GetPendingLeaves()
     {
         var leaves = await _leaveService.GetPendingLeavesAsync();
@@ -50,7 +50,7 @@ public class LeavesController : ControllerBase
     }
 
     [HttpPut("{id}/review")]
-    [Authorize(Roles = "advisor,supervisor")]
+    [Authorize(Roles = "advisor,admin")]
     public async Task<IActionResult> ReviewLeave(int id, [FromBody] ReviewLeaveDto request)
     {
         var result = await _leaveService.ReviewLeaveAsync(id, request);

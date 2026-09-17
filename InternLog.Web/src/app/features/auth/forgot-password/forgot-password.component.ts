@@ -39,7 +39,7 @@ export class ForgotPasswordComponent {
         this.isLoading = false;
         this.isSuccess = true;
       },
-      error: (err) => {
+      error: (err: any) => {
         this.isLoading = false;
         // Even if the email isn't found, for security reasons we should probably show success 
         // to prevent email enumeration, but depending on the business logic, we can show the error.

@@ -10,7 +10,6 @@ public static class Constants
     {
         public const string Student    = "student";
         public const string Advisor    = "advisor";
-        public const string Supervisor = "supervisor";
         public const string Admin      = "admin";
     }
 

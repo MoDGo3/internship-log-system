@@ -16,18 +16,18 @@
           <th>ชื่อบริษัท</th>
           <th>ที่อยู่</th>
           <th>เบอร์โทรศัพท์</th>
-          <th>เวลาทำการ</th>
+          <th>ผู้ติดต่อ</th>
           <th>นศ. ที่ฝึกอยู่</th>
           <th>จัดการ</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let company of companies">
-          <td class="font-bold text-primary">{{ company.name }}</td>
+          <td class="font-bold text-primary">{{ company.companyName }}</td>
           <td class="text-secondary">{{ company.address }}</td>
           <td>{{ company.phone }}</td>
-          <td>{{ company.time }}</td>
-          <td>{{ company.studentCount }} คน</td>
+          <td>{{ company.contactPerson || '-' }}</td>
+          <td>{{ company.studentCount || 0 }} คน</td>
           <td>
             <div class="actions">
               <button class="btn-icon">✏️</button>

@@ -23,7 +23,6 @@ public record WorkLogResponseDto(
     string? Detail,
     string? Problem,
     string? Solution,
-    string Status,
     DateTime CreatedAt,
     DateTime? UpdatedAt,
     List<AttachmentResponseDto> Attachments,
@@ -51,7 +50,7 @@ public record CommentResponseDto(
     DateTime CreatedAt
 );
 
-public record ReviewLogDto(
-    [Required] bool IsApproved,
-    string? Comment
+public record WorkCategoryDto(
+    int CategoryID,
+    string CategoryName
 );

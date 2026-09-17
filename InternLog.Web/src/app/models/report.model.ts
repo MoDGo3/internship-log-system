@@ -1,16 +1,25 @@
-export interface ReportRecord {
+export interface ReportResponseDto {
   reportID: number;
+  internshipID: number;
   studentID: number;
-  title: string;
-  reportDate: string;
-  pdfUrl?: string;
-  id?: number;
-  reportDateFormatted?: string;
+  studentName: string;
+  periodLabel: string;
+  startDate: string; // DateOnly 'yyyy-MM-dd'
+  endDate: string; // DateOnly 'yyyy-MM-dd'
+  status: string; // 'draft', 'submitted', 'approved', 'returned'
+  reviewNote?: string;
+  filePath?: string;
+  createdAt: string;
 }
 
-export interface ReportSummaryDto {
-  totalHours: number;
-  attendanceDays: number;
-  leaveDays: number;
-  categoryBreakdown: { [category: string]: number };
+export interface ReportGenerateRequestDto {
+  internshipID: number;
+  periodLabel: string;
+  startDate: string;
+  endDate: string;
+}
+
+export interface ReportReviewRequestDto {
+  status: string;
+  reviewNote?: string;
 }

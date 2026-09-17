@@ -1,7 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AdminService } from '../../../core/services/admin.service';
-import { UserRecord } from '../../../models/admin.model';
+import { AdminService, AdminUser } from '../services/admin.service';
 
 @Component({
   selector: 'app-admin-users',
@@ -11,23 +10,26 @@ import { UserRecord } from '../../../models/admin.model';
   styleUrls: ['./admin-users.component.scss']
 })
 export class AdminUsersComponent implements OnInit {
-  users: UserRecord[] = [];
+  private adminService = inject(AdminService);
 
-  constructor(private adminService: AdminService) {}
+  users: AdminUser[] = [];
+  isLoading = false;
 
   ngOnInit() {
     this.loadUsers();
   }
 
   loadUsers() {
+    this.isLoading = true;
     this.adminService.getUsers().subscribe({
-      next: (res: any) => {
-        const data = res.data;
-        if (data) {
-          this.users = data;
-        }
+      next: (data: AdminUser[]) => {
+        this.users = data;
+        this.isLoading = false;
       },
-      error: (err: any) => console.error('Failed to load users', err)
+      error: (err: any) => {
+        console.error('Failed to load users', err);
+        this.isLoading = false;
+      }
     });
   }
 
@@ -36,17 +38,16 @@ export class AdminUsersComponent implements OnInit {
     switch(r) {
       case 'student': return 'chip-info';
       case 'advisor': return 'chip-success';
-      case 'supervisor': return 'chip-warning';
       case 'admin': return 'chip-danger';
       default: return '';
     }
   }
 
-  toggleStatus(user: UserRecord) {
-    const updatedStatus = !user.isActive;
-    this.adminService.updateUser(user.userID.toString(), { isActive: updatedStatus }).subscribe({
+  toggleStatus(user: AdminUser) {
+    const updatedStatus = user.status === 'active' ? 'suspended' : 'active';
+    this.adminService.updateUser(user.id, { isActive: updatedStatus === 'active' }).subscribe({
       next: () => {
-        user.isActive = updatedStatus;
+        user.status = updatedStatus as 'active' | 'suspended';
       },
       error: (err: any) => console.error('Failed to update user status', err)
     });

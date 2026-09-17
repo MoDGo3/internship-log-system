@@ -28,12 +28,12 @@
             <td>{{ visit.dateFormatted || visit.visitDate }}</td>
             <td>
               <div class="user-info">
-                <div class="avatar">{{ visit.advisorName?.charAt(2) || 'อ' }}</div>
+                <div class="avatar">{{ visit.advisorName.charAt(2) || 'อ' }}</div>
                 <span>{{ visit.advisorName }}</span>
               </div>
             </td>
             <td>
-              <span class="chip" [ngClass]="getFormatClass(visit.visitFormat)">{{ visit.visitFormat }}</span>
+              <span class="chip" [ngClass]="getFormatClass(visit.visitType)">{{ visit.visitType }}</span>
             </td>
             <td>{{ visit.summary || '-' }}</td>
             <td>

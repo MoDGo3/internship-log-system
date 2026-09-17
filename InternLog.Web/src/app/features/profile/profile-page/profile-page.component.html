@@ -14,7 +14,7 @@
       <div class="card-body">
         <div class="avatar-section">
           <div class="avatar-preview" (click)="uploadAvatar()">
-            <span *ngIf="!profile.avatar">{{ profile.firstName.charAt(0) }}</span>
+            <span *ngIf="!profile.profileImage">{{ profile.firstName?.charAt(0) || 'U' }}</span>
             <div class="avatar-overlay">📷</div>
           </div>
           <div class="avatar-info">
@@ -26,15 +26,15 @@
         <div class="form-grid">
           <div class="form-group">
             <label class="form-label">ชื่อ</label>
-            <input type="text" class="form-control" [(ngModel)]="profile.firstName">
+            <input type="text" class="form-control" [(ngModel)]="profile.firstName" disabled>
           </div>
           <div class="form-group">
             <label class="form-label">นามสกุล</label>
-            <input type="text" class="form-control" [(ngModel)]="profile.lastName">
+            <input type="text" class="form-control" [(ngModel)]="profile.lastName" disabled>
           </div>
           <div class="form-group">
-            <label class="form-label">รหัสนักศึกษา</label>
-            <input type="text" class="form-control" [(ngModel)]="profile.studentId" disabled>
+            <label class="form-label">รหัสนักศึกษา / ID</label>
+            <input type="text" class="form-control" [(ngModel)]="profile.studentID" disabled>
           </div>
           <div class="form-group">
             <label class="form-label">อีเมล</label>
@@ -42,7 +42,7 @@
           </div>
           <div class="form-group full-width">
             <label class="form-label">เบอร์โทรศัพท์</label>
-            <input type="tel" class="form-control" [(ngModel)]="profile.phone">
+            <input type="tel" class="form-control" [(ngModel)]="profile.phone" disabled>
           </div>
         </div>
 
@@ -113,7 +113,10 @@
         </div>
 
         <div class="card-actions">
-          <button class="btn-primary" (click)="changePassword()">อัปเดตรหัสผ่าน</button>
+          <button class="btn-primary" [disabled]="isLoading" (click)="changePassword()">
+            <span *ngIf="!isLoading">อัปเดตรหัสผ่าน</span>
+            <span *ngIf="isLoading" class="spinner"></span>
+          </button>
         </div>
       </div>
     </div>

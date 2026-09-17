@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { EvaluationsService } from '../../../core/services/evaluations.service';
-import { EvaluationRecord } from '../../../models/evaluation.model';
+import { EvaluationResponseDto, EvaluationRequestDto } from '../../../models/evaluation.model';
 
 interface EvaluationItem {
   id: number;
@@ -18,7 +18,6 @@ interface EvaluationItem {
   styleUrls: ['./evaluations-page.component.scss']
 })
 export class EvaluationsPageComponent implements OnInit {
-  // Mock data for student to company evaluation questions
   studentEvalItems: EvaluationItem[] = [
     { id: 1, question: 'ความเหมาะสมของสถานที่ฝึกงาน', score: 0 },
     { id: 2, question: 'การดูแลและให้คำแนะนำของพี่เลี้ยง', score: 0 },
@@ -27,7 +26,6 @@ export class EvaluationsPageComponent implements OnInit {
     { id: 5, question: 'ภาพรวมความพึงพอใจ', score: 0 }
   ];
 
-  // Mock data for mentor to student evaluation questions
   mentorEvalItems: EvaluationItem[] = [
     { id: 1, question: 'ความรับผิดชอบต่องานที่ได้รับมอบหมาย', score: 4 },
     { id: 2, question: 'ความรู้ความสามารถพื้นฐาน', score: 4 },
@@ -38,7 +36,8 @@ export class EvaluationsPageComponent implements OnInit {
 
   studentComment = '';
   stars = [1, 2, 3, 4, 5];
-  evaluations: EvaluationRecord[] = [];
+  evaluations: EvaluationResponseDto[] = [];
+  internshipID = 1; // Temporary hardcoded or retrieved from state
 
   constructor(private evaluationsService: EvaluationsService) {}
 
@@ -47,10 +46,38 @@ export class EvaluationsPageComponent implements OnInit {
   }
 
   loadEvaluations() {
-    this.evaluationsService.getEvaluations().subscribe({
-      next: (data) => {
-        if (data) {
-          this.evaluations = data;
+    this.evaluationsService.getEvaluations(this.internshipID).subscribe({
+      next: (res) => {
+        if (res.success && res.data) {
+          this.evaluations = res.data;
+          
+          // Load my submitted evaluation (Student -> Company)
+          const myEval = this.evaluations.find(e => e.evaluatorRole === 'student_eval');
+          if (myEval && myEval.criteriaJson) {
+            try {
+              const savedScores = JSON.parse(myEval.criteriaJson);
+              this.studentEvalItems.forEach(item => {
+                const s = savedScores.find((x: any) => x.id === item.id);
+                if (s) item.score = s.score;
+              });
+              this.studentComment = myEval.comment || '';
+            } catch (e) {}
+          }
+
+          // Load Mentor's evaluation of Student
+          const mentorEval = this.evaluations.find(e => e.evaluatorRole === 'supervisor_eval');
+          if (mentorEval && mentorEval.criteriaJson) {
+            try {
+              const savedScores = JSON.parse(mentorEval.criteriaJson);
+              this.mentorEvalItems.forEach(item => {
+                const s = savedScores.find((x: any) => x.id === item.id);
+                if (s) item.score = s.score;
+              });
+            } catch (e) {}
+          } else {
+             // Reset to 0 if not evaluated yet
+             this.mentorEvalItems.forEach(item => item.score = 0);
+          }
         }
       },
       error: (err) => console.error('Failed to load evaluations', err)
@@ -63,8 +90,6 @@ export class EvaluationsPageComponent implements OnInit {
 
   getTotalScore(items: EvaluationItem[]): number {
     const total = items.reduce((sum, item) => sum + item.score, 0);
-    // Max score is 25 (5 items * 5 max)
-    // Convert to percentage
     return (total / (items.length * 5)) * 100;
   }
 
@@ -89,7 +114,6 @@ export class EvaluationsPageComponent implements OnInit {
   }
 
   submitEvaluation() {
-    // Check if all items are scored
     const isComplete = this.studentEvalItems.every(i => i.score > 0);
     if (!isComplete) {
       alert('กรุณาประเมินให้ครบทุกข้อ');
@@ -97,15 +121,22 @@ export class EvaluationsPageComponent implements OnInit {
     }
     
     if (confirm('คุณต้องการส่งผลการประเมินใช่หรือไม่? (เมื่อส่งแล้วจะไม่สามารถแก้ไขได้)')) {
-      const payload = {
-        score: this.getTotalScore(this.studentEvalItems),
-        comments: this.studentComment
+      const score = this.getTotalScore(this.studentEvalItems);
+      const req: EvaluationRequestDto = {
+        internshipID: this.internshipID,
+        evaluatorRole: 'student_eval',
+        criteriaJson: JSON.stringify(this.studentEvalItems.map(i => ({ id: i.id, score: i.score }))),
+        totalScore: score,
+        grade: this.getGrade(score),
+        comment: this.studentComment
       };
 
-      this.evaluationsService.submitEvaluation(payload).subscribe({
-        next: () => {
-          alert('บันทึกผลการประเมินสำเร็จ');
-          this.loadEvaluations();
+      this.evaluationsService.submitEvaluation(req).subscribe({
+        next: (res) => {
+          if (res.success) {
+            alert('บันทึกผลการประเมินสำเร็จ');
+            this.loadEvaluations();
+          }
         },
         error: (err) => alert('บันทึกไม่สำเร็จ: ' + err.message)
       });

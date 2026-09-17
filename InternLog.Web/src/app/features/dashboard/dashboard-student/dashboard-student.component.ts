@@ -6,7 +6,7 @@ import { th } from 'date-fns/locale';
 
 import { DashboardService } from '../../../core/services/dashboard.service';
 import { AttendanceService } from '../../../core/services/attendance.service';
-import { WorklogsService } from '../../../core/services/worklogs.service';
+import { WorkLogService } from '../../work-logs/services/work-log.service';
 import { NotificationsService } from '../../../core/services/notifications.service';
 import { LeavesService } from '../../../core/services/leaves.service';
 import { AdvisorVisitsService } from '../../../core/services/advisor-visits.service';
@@ -39,7 +39,7 @@ export class DashboardStudentComponent implements OnInit, OnDestroy {
   constructor(
     private dashboardService: DashboardService,
     private attendanceService: AttendanceService,
-    private worklogsService: WorklogsService,
+    private workLogService: WorkLogService,
     private notificationsService: NotificationsService,
     private leavesService: LeavesService,
     private visitsService: AdvisorVisitsService,
@@ -52,8 +52,8 @@ export class DashboardStudentComponent implements OnInit, OnDestroy {
     
     // Read from AuthService signal
     const user = this.authService.currentUser();
-    if (user && user.id) {
-      this.studentId = user.id;
+    if (user && user.userID) {
+      this.studentId = user.userID;
       this.loadDashboardData();
     }
   }
@@ -64,58 +64,91 @@ export class DashboardStudentComponent implements OnInit, OnDestroy {
     }
   }
 
+  hasCheckedInToday = false;
+  hasCheckedOutToday = false;
+
   loadDashboardData() {
-    // Attendance Summary
-    this.attendanceService.getSummary().subscribe(res => {
-      const data = res.data;
-      if (data) {
-        this.stats.workedDays = data.totalDays || 0;
-        this.stats.totalHours = data.totalHours || 0;
+    const now = new Date();
+    
+    // 1. Dashboard Summary
+    this.dashboardService.getDashboardSummary().subscribe({
+      next: (res) => {}
+    });
+
+    // 2. Attendance Summary
+    this.attendanceService.getSummary(1).subscribe({
+      next: (res) => {
+        if (res.success && res.data) {
+          this.stats.workedDays = res.data.totalDays || 0;
+          this.stats.totalHours = res.data.totalHours || 0;
+        }
       }
     });
 
-    // Leaves Quota
-    this.leavesService.getQuota().subscribe(res => {
-      const data = res.data;
-      if (data) {
-        // Assuming the API returns something like { remainingQuota: 5 }
-        this.stats.leavesLeft = data.remainingQuota || 0;
+    // 3. Leaves Quota
+    this.leavesService.getQuota().subscribe({
+      next: (res: any) => {
+        const data = res.data;
+        if (data && Array.isArray(data)) {
+          this.stats.leavesLeft = data.reduce((sum, item) => sum + (item.remainingDays || 0), 0);
+        }
       }
     });
 
-    // Recent Worklogs
-    this.worklogsService.getLogs().subscribe(res => {
-      const data = res.data;
-      if (data && data.length > 0) {
-        // Take top 4 recent logs
-        this.recentLogs = data.slice(0, 4).map((log: any) => ({
-          date: log.logDate, // Assuming API returns logDate
-          title: log.title,
-          hours: log.hoursSpent,
-          status: log.status
-        }));
+    // 4. Recent Worklogs
+    this.workLogService.getStudentLogs(now.getFullYear(), now.getMonth() + 1).subscribe({
+      next: (res: any) => {
+        const data = res.data;
+        if (data && data.length > 0) {
+          this.recentLogs = data.slice(0, 4).map((log: any) => ({
+            date: log.logDate,
+            title: log.title,
+            hours: log.hours
+          }));
+        }
       }
     });
 
-    // Notifications
-    this.notificationsService.getNotifications().subscribe(res => {
-      const data = res.data;
-      if (data && data.length > 0) {
-        this.notifications = data.slice(0, 3).map((n: any) => ({
-          icon: n.type === 'system' ? '⚙️' : '🔔', // Simplified icon logic
-          text: n.message,
-          time: new Date(n.createdAt).toLocaleDateString() // Simplified time
-        }));
+    // 5. Notifications
+    this.notificationsService.getNotifications().subscribe({
+      next: (res: any) => {
+        const data = res.data;
+        if (data && data.length > 0) {
+          this.notifications = data.slice(0, 3).map((n: any) => ({
+            icon: '🔔',
+            text: n.message,
+            time: new Date(n.createdAt).toLocaleDateString('th-TH')
+          }));
+        }
       }
     });
 
-    // Advisor Visits (Next visit)
-    this.visitsService.getVisits().subscribe(res => {
-      const data = res.data;
-      if (data && data.length > 0) {
-        const upcoming = data.filter((v: any) => new Date(v.visitDate) > new Date());
-        if (upcoming.length > 0) {
-          this.stats.nextVisit = new Date(upcoming[0].visitDate).toLocaleDateString('th-TH');
+    // 6. Advisor Visits
+    this.visitsService.getVisits(1).subscribe({
+      next: (res: any) => {
+        const data = res.data;
+        if (data && data.length > 0) {
+          const upcoming = data.filter((v: any) => new Date(v.visitDate) > new Date());
+          if (upcoming.length > 0) {
+            this.stats.nextVisit = new Date(upcoming[0].visitDate).toLocaleDateString('th-TH');
+          }
+        }
+      }
+    });
+
+    // 7. Today's Attendance Status
+    this.attendanceService.getRecords(now.getMonth() + 1, now.getFullYear()).subscribe({
+      next: (res: any) => {
+        if (res.success && res.data) {
+          const todayStr = format(now, 'yyyy-MM-dd');
+          const todayRecord = res.data.find((a: any) => a.attDate && a.attDate.startsWith(todayStr));
+          if (todayRecord) {
+            this.hasCheckedInToday = !!todayRecord.checkInTime;
+            this.hasCheckedOutToday = !!todayRecord.checkOutTime;
+          } else {
+            this.hasCheckedInToday = false;
+            this.hasCheckedOutToday = false;
+          }
         }
       }
     });
@@ -127,39 +160,40 @@ export class DashboardStudentComponent implements OnInit, OnDestroy {
     this.currentDate = format(now, 'd MMM yy', { locale: th });
   }
 
+  actionMessage: { type: 'success' | 'error', text: string } | null = null;
+
+  showMessage(type: 'success' | 'error', text: string) {
+    this.actionMessage = { type, text };
+    setTimeout(() => {
+      this.actionMessage = null;
+    }, 5000); // 5 วินาทีแล้วค่อยซ่อน
+  }
+
   checkIn() {
-    this.attendanceService.checkIn({ note: 'เข้างาน' }).subscribe({
-      next: () => alert('บันทึกเวลาเข้างานเรียบร้อยแล้ว'),
-      error: (err) => alert('ไม่สามารถลงเวลาเข้าได้: ' + err.message)
+    this.attendanceService.checkIn(null).subscribe({
+      next: (res) => {
+        const timeStr = res.data?.checkInTime || this.currentTime;
+        this.showMessage('success', `ลงชื่อเข้าแล้ว เวลา: ${timeStr}`);
+        this.loadDashboardData();
+      },
+      error: (err) => {
+        const errorMsg = err.error?.message || err.message;
+        this.showMessage('error', `ไม่สามารถลงเวลาเข้าได้: ${errorMsg}`);
+      }
     });
   }
 
   checkOut() {
-    this.attendanceService.checkOut({ note: 'ออกงาน' }).subscribe({
-      next: () => alert('บันทึกเวลาออกงานเรียบร้อยแล้ว'),
-      error: (err) => alert('ไม่สามารถลงเวลาออกได้: ' + err.message)
+    this.attendanceService.checkOut(null).subscribe({
+      next: (res) => {
+        const timeStr = res.data?.checkOutTime || this.currentTime;
+        this.showMessage('success', `ลงชื่อออกแล้ว เวลา: ${timeStr}`);
+        this.loadDashboardData();
+      },
+      error: (err) => {
+        const errorMsg = err.error?.message || err.message;
+        this.showMessage('error', `ไม่สามารถลงเวลาออกได้: ${errorMsg}`);
+      }
     });
-  }
-
-  getStatusBadgeClass(status: string): string {
-    switch(status?.toLowerCase()) {
-      case 'approved': return 'badge-success';
-      case 'pending': return 'badge-warning';
-      case 'rejected': 
-      case 'returned': return 'badge-danger';
-      case 'draft': return 'badge-secondary';
-      default: return 'badge-secondary';
-    }
-  }
-
-  getStatusText(status: string): string {
-    switch(status?.toLowerCase()) {
-      case 'approved': return 'อนุมัติแล้ว';
-      case 'pending': return 'รออนุมัติ';
-      case 'rejected': 
-      case 'returned': return 'ตีกลับ';
-      case 'draft': return 'ร่าง';
-      default: return status || 'ไม่มีสถานะ';
-    }
   }
 }

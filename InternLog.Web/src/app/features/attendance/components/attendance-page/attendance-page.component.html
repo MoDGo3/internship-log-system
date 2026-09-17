@@ -44,7 +44,7 @@
     <div class="card-header">
       <h3>ประวัติการลงเวลา</h3>
       <div class="filter-bar">
-        <select class="form-select" [(ngModel)]="selectedMonth" aria-label="กรองตามเดือน" title="กรองตามเดือน">
+        <select class="form-select" [(ngModel)]="selectedMonth" (change)="onMonthChange()" aria-label="กรองตามเดือน" title="กรองตามเดือน">
           <option *ngFor="let m of months" [value]="m.value">{{ m.label }}</option>
         </select>
       </div>

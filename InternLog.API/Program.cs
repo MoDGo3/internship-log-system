@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -39,7 +40,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer              = builder.Configuration["Jwt:Issuer"],
             ValidAudience            = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-            RoleClaimType            = "role",
+            RoleClaimType            = ClaimTypes.Role,
             NameClaimType            = "name"
         };
 
@@ -90,33 +91,6 @@ builder.Services.AddSwaggerGen(c =>
         Version = "v1",
         Description = "ระบบจดบันทึกการฝึกงาน — Backend API"
     });
-
-    // เพิ่ม Bearer token input ใน Swagger UI
-    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.OpenApiSecurityScheme
-    {
-        Type         = Microsoft.OpenApi.SecuritySchemeType.Http,
-        Scheme       = "bearer",
-        BearerFormat = "JWT",
-        In           = Microsoft.OpenApi.ParameterLocation.Header,
-        Description  = "ใส่ accessToken ที่ได้จาก POST /api/auth/login"
-    });
-
-    /*
-    c.AddSecurityRequirement(new Microsoft.OpenApi.OpenApiSecurityRequirement
-    {
-        {
-            new Microsoft.OpenApi.OpenApiSecurityScheme
-            {
-                Reference = new Microsoft.OpenApi.OpenApiReference
-                {
-                    Type = Microsoft.OpenApi.ReferenceType.SecurityScheme,
-                    Id   = "Bearer"
-                }
-            },
-            Array.Empty<string>()
-        }
-    });
-    */
 });
 
 // ─── 5. Controllers ──────────────────────────────────────────────────────────
@@ -137,7 +111,6 @@ builder.Services.AddScoped<InternLog.API.Modules.AdvisorVisits.IAdvisorVisitServ
 builder.Services.AddScoped<InternLog.API.Modules.Reports.IReportService, InternLog.API.Modules.Reports.ReportService>();
 builder.Services.AddScoped<InternLog.API.Modules.Tasks.ITaskService, InternLog.API.Modules.Tasks.TaskService>();
 builder.Services.AddScoped<InternLog.API.Modules.WorkLogs.IWorkLogService, InternLog.API.Modules.WorkLogs.WorkLogService>();
-builder.Services.AddScoped<InternLog.API.Modules.Messages.IMessageService, InternLog.API.Modules.Messages.MessageService>();
 builder.Services.AddScoped<InternLog.API.Modules.Notifications.INotificationService, InternLog.API.Modules.Notifications.NotificationService>();
 builder.Services.AddScoped<InternLog.API.Modules.Evaluations.IEvaluationService, InternLog.API.Modules.Evaluations.EvaluationService>();
 builder.Services.AddScoped<InternLog.API.Modules.Admin.IAdminService, InternLog.API.Modules.Admin.AdminService>();
@@ -182,7 +155,6 @@ if (app.Environment.IsDevelopment())
             db.Roles.AddRange(
                 new InternLog.API.Infrastructure.Data.Models.Role { RoleName = "student" },
                 new InternLog.API.Infrastructure.Data.Models.Role { RoleName = "advisor" },
-                new InternLog.API.Infrastructure.Data.Models.Role { RoleName = "supervisor" },
                 new InternLog.API.Infrastructure.Data.Models.Role { RoleName = "admin" }
             );
             db.SaveChanges();
@@ -190,14 +162,13 @@ if (app.Environment.IsDevelopment())
         }
 
         // Seed Users
-        if (!db.Users.Any())
+        if (!db.Users.Any(u => u.Email == "student@test.com"))
         {
             var testPasswordHash = InternLog.API.Core.Security.PasswordHasher.Hash("Test@1234");
             db.Users.AddRange(
                 new InternLog.API.Infrastructure.Data.Models.User { RoleID = 1, Email = "student@test.com", PasswordHash = testPasswordHash, FirstName = "สมชาย", LastName = "ใจดี", StudentID = "6501001", IsActive = true, CreatedAt = DateTime.Now },
                 new InternLog.API.Infrastructure.Data.Models.User { RoleID = 2, Email = "advisor@test.com", PasswordHash = testPasswordHash, FirstName = "สมหญิง", LastName = "รักเรียน", IsActive = true, CreatedAt = DateTime.Now },
-                new InternLog.API.Infrastructure.Data.Models.User { RoleID = 3, Email = "supervisor@test.com", PasswordHash = testPasswordHash, FirstName = "วิชัย", LastName = "ทำงาน", IsActive = true, CreatedAt = DateTime.Now },
-                new InternLog.API.Infrastructure.Data.Models.User { RoleID = 4, Email = "admin@internlog.dev", PasswordHash = testPasswordHash, FirstName = "Admin", LastName = "System", IsActive = true, CreatedAt = DateTime.Now }
+                new InternLog.API.Infrastructure.Data.Models.User { RoleID = 4, Email = "admin@test.com", PasswordHash = testPasswordHash, FirstName = "ผู้ดูแล", LastName = "ระบบ", IsActive = true, CreatedAt = DateTime.Now }
             );
             db.SaveChanges();
             Console.WriteLine("✅ Seed Users สำเร็จ");
@@ -222,6 +193,29 @@ if (app.Environment.IsDevelopment())
             );
             db.SaveChanges();
             Console.WriteLine("✅ Seed TrainingPeriods สำเร็จ");
+        }
+
+        // Seed Internships
+        if (!db.Internships.Any())
+        {
+            var student = db.Users.FirstOrDefault(u => u.Email == "student@test.com");
+            var advisor = db.Users.FirstOrDefault(u => u.Email == "advisor@test.com");
+            var company = db.Companies.FirstOrDefault();
+            var period = db.TrainingPeriods.FirstOrDefault();
+
+            if (student != null && advisor != null && company != null && period != null)
+            {
+                db.Internships.Add(new InternLog.API.Infrastructure.Data.Models.Internship 
+                {
+                    StudentID = student.UserID,
+                    AdvisorID = advisor.UserID,
+                    CompanyID = company.CompanyID,
+                    PeriodID = period.PeriodID,
+                    Status = "active"
+                });
+                db.SaveChanges();
+                Console.WriteLine("✅ Seed Internships สำเร็จ");
+            }
         }
     }
     catch (Exception ex)

@@ -1,7 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, throwError } from 'rxjs';
+import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { EvaluationResponseDto, EvaluationRequestDto } from '../../models/evaluation.model';
+import { ApiResponse } from '../../models/user.model';
 
 @Injectable({
   providedIn: 'root'
@@ -11,26 +13,15 @@ export class EvaluationsService {
 
   constructor(private http: HttpClient) {}
 
-  getEvaluations(): Observable<any> {
-    return this.http.get<any>(this.apiUrl).pipe(
-      catchError(this.handleError)
-    );
+  getEvaluations(internshipId: number): Observable<ApiResponse<EvaluationResponseDto[]>> {
+    return this.http.get<ApiResponse<EvaluationResponseDto[]>>(`${this.apiUrl}?internshipId=${internshipId}`);
   }
 
-  getEvaluationById(id: string): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/${id}`).pipe(
-      catchError(this.handleError)
-    );
+  getEvaluationById(id: number): Observable<ApiResponse<EvaluationResponseDto>> {
+    return this.http.get<ApiResponse<EvaluationResponseDto>>(`${this.apiUrl}/${id}`);
   }
 
-  submitEvaluation(data: any): Observable<any> {
-    return this.http.post<any>(this.apiUrl, data).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-  private handleError(error: any) {
-    console.error('An error occurred:', error);
-    return throwError(() => new Error(error.message || 'Server error'));
+  submitEvaluation(data: EvaluationRequestDto): Observable<ApiResponse<EvaluationResponseDto>> {
+    return this.http.post<ApiResponse<EvaluationResponseDto>>(this.apiUrl, data);
   }
 }

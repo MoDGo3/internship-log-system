@@ -25,7 +25,6 @@ public class AppDbContext : DbContext
     public DbSet<LogComment>         LogComments          => Set<LogComment>();
     public DbSet<TaskItem>           Tasks                => Set<TaskItem>();
     public DbSet<AdvisorVisit>       AdvisorVisits        => Set<AdvisorVisit>();
-    public DbSet<Message>            Messages             => Set<Message>();
     public DbSet<Notification>       Notifications        => Set<Notification>();
     public DbSet<Report>             Reports              => Set<Report>();
     public DbSet<Evaluation>         Evaluations          => Set<Evaluation>();
@@ -111,11 +110,6 @@ public class AppDbContext : DbContext
              .HasForeignKey(x => x.AdvisorID)
              .OnDelete(DeleteBehavior.Restrict);
 
-            e.HasOne(x => x.Supervisor)
-             .WithMany()
-             .HasForeignKey(x => x.SupervisorID)
-             .OnDelete(DeleteBehavior.SetNull);
-
             e.HasOne(x => x.Company)
              .WithMany(c => c.Internships)
              .HasForeignKey(x => x.CompanyID)
@@ -192,7 +186,6 @@ public class AppDbContext : DbContext
         {
             e.ToTable("WorkLogs");
             e.HasKey(x => x.LogID);
-            e.Property(x => x.Status).HasMaxLength(20).HasDefaultValue("draft");
             e.Property(x => x.Title).HasMaxLength(200).IsRequired();
             e.Property(x => x.Hours).HasColumnType("decimal(5,2)"); // Backend computed
             e.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
@@ -287,24 +280,6 @@ public class AppDbContext : DbContext
              .OnDelete(DeleteBehavior.Restrict);
         });
 
-        // ─── Messages ───────────────────────────────────────────────────
-        mb.Entity<Message>(e =>
-        {
-            e.ToTable("Messages");
-            e.HasKey(x => x.MessageID);
-            e.Property(x => x.IsRead).HasDefaultValue(false);
-            e.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
-
-            e.HasOne(x => x.Sender)
-             .WithMany(u => u.SentMessages)
-             .HasForeignKey(x => x.SenderID)
-             .OnDelete(DeleteBehavior.Restrict);
-
-            e.HasOne(x => x.Receiver)
-             .WithMany(u => u.ReceivedMessages)
-             .HasForeignKey(x => x.ReceiverID)
-             .OnDelete(DeleteBehavior.Restrict);
-        });
 
         // ─── Notifications ──────────────────────────────────────────────
         mb.Entity<Notification>(e =>

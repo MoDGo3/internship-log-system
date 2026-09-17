@@ -56,23 +56,31 @@ export class AttendancePageComponent implements OnInit, OnDestroy {
   }
 
   loadData() {
-    this.attendanceService.getSummary().subscribe({
-      next: (res: any) => {
-        const data = res.data;
-        if (data) this.stats = data;
+    this.attendanceService.getSummary(1).subscribe({
+      next: (res) => {
+        if (res.success && res.data) {
+          this.stats = res.data;
+        }
       },
-      error: (err: any) => console.error('Failed to load summary', err)
+      error: (err) => console.error('Failed to load summary', err)
     });
 
     this.loadHistory();
   }
 
+  onMonthChange() {
+    this.loadHistory();
+  }
+
   loadHistory() {
-    this.attendanceService.getRecords().subscribe({
-      next: (res: any) => {
-        const data = res.data;
-        if (data) {
-          this.history = data;
+    const [monthStr, yearStr] = this.selectedMonth.split('-');
+    const month = parseInt(monthStr, 10);
+    const year = parseInt(yearStr, 10);
+
+    this.attendanceService.getRecords(month, year).subscribe({
+      next: (res) => {
+        if (res.success && res.data) {
+          this.history = res.data;
           
           // Check today's status
           const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -84,7 +92,7 @@ export class AttendancePageComponent implements OnInit, OnDestroy {
           }
         }
       },
-      error: (err: any) => console.error('Failed to load history', err)
+      error: (err) => console.error('Failed to load history', err)
     });
   }
 
@@ -96,59 +104,65 @@ export class AttendancePageComponent implements OnInit, OnDestroy {
 
   checkIn() {
     if (this.isCheckedIn) return;
-    this.attendanceService.checkIn({ note: '' }).subscribe({
-      next: () => {
-        alert('ลงเวลาเข้าสำเร็จ');
-        this.isCheckedIn = true;
-        this.loadHistory();
+    this.attendanceService.checkIn(null).subscribe({
+      next: (res) => {
+        if (res.success) {
+          alert('ลงเวลาเข้าสำเร็จ');
+          this.isCheckedIn = true;
+          this.loadHistory();
+        }
       },
-      error: (err: any) => alert('เกิดข้อผิดพลาด: ' + err.message)
+      error: (err) => alert('เกิดข้อผิดพลาด: ' + err.message)
     });
   }
 
   checkOut() {
     if (!this.isCheckedIn) return;
-    this.attendanceService.checkOut({ note: '' }).subscribe({
-      next: () => {
-        alert('ลงเวลาออกสำเร็จ');
-        this.isCheckedIn = false;
-        this.loadHistory();
+    this.attendanceService.checkOut(null).subscribe({
+      next: (res) => {
+        if (res.success) {
+          alert('ลงเวลาออกสำเร็จ');
+          this.isCheckedIn = false;
+          this.loadHistory();
+        }
       },
-      error: (err: any) => alert('เกิดข้อผิดพลาด: ' + err.message)
+      error: (err) => alert('เกิดข้อผิดพลาด: ' + err.message)
     });
   }
 
-  requestEdit(item: any) {
+  requestEdit(item: AttendanceRecord) {
     const reason = prompt('กรุณาระบุเหตุผลการขอแก้ไขเวลา:');
     if (reason) {
       this.attendanceService.requestEdit(item.attendanceID, { note: reason }).subscribe({
-        next: () => {
-          alert('ส่งคำขอแก้ไขเวลาเรียบร้อยแล้ว');
-          this.loadHistory();
+        next: (res) => {
+          if (res.success) {
+            alert('ส่งคำขอแก้ไขเวลาเรียบร้อยแล้ว');
+            this.loadHistory();
+          }
         },
-        error: (err: any) => alert('เกิดข้อผิดพลาด: ' + err.message)
+        error: (err) => alert('เกิดข้อผิดพลาด: ' + err.message)
       });
     }
   }
 
   getStatusBadgeClass(status: string): string {
     switch(status?.toLowerCase()) {
-      case 'ontime': return 'badge-success';
+      case 'present': return 'badge-success';
       case 'late': return 'badge-danger';
       case 'leave': return 'badge-leave';
       case 'absent': return 'badge-secondary';
-      case 'pending_edit': return 'badge-warning';
+      case 'pending': return 'badge-warning';
       default: return 'badge-secondary';
     }
   }
 
   getStatusText(status: string): string {
     switch(status?.toLowerCase()) {
-      case 'ontime': return 'ตรงเวลา';
+      case 'present': return 'ตรงเวลา';
       case 'late': return 'สาย';
       case 'leave': return 'ลา';
       case 'absent': return 'ขาด';
-      case 'pending_edit': return 'รอแก้ไข';
+      case 'pending': return 'รอแก้ไข';
       default: return status || '-';
     }
   }

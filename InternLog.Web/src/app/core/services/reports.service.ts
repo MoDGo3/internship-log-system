@@ -1,7 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, throwError } from 'rxjs';
+import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { ReportResponseDto, ReportGenerateRequestDto, ReportReviewRequestDto } from '../../models/report.model';
+import { ApiResponse } from '../../models/user.model';
 
 @Injectable({
   providedIn: 'root'
@@ -11,44 +13,23 @@ export class ReportsService {
 
   constructor(private http: HttpClient) {}
 
-  getReports(): Observable<any> {
-    return this.http.get<any>(this.apiUrl).pipe(
-      catchError(this.handleError)
-    );
+  getReports(internshipId: number): Observable<ApiResponse<ReportResponseDto[]>> {
+    return this.http.get<ApiResponse<ReportResponseDto[]>>(`${this.apiUrl}?internshipId=${internshipId}`);
   }
 
-  getSummary(): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/summary`).pipe(
-      catchError(this.handleError)
-    );
+  generateReport(data: ReportGenerateRequestDto): Observable<ApiResponse<ReportResponseDto>> {
+    return this.http.post<ApiResponse<ReportResponseDto>>(`${this.apiUrl}/generate`, data);
   }
 
-  generateReport(data: any): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/generate`, data).pipe(
-      catchError(this.handleError)
-    );
+  submitReport(id: number): Observable<ApiResponse<ReportResponseDto>> {
+    return this.http.put<ApiResponse<ReportResponseDto>>(`${this.apiUrl}/${id}/submit`, {});
   }
 
-  submitReport(id: string): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/${id}/submit`, {}).pipe(
-      catchError(this.handleError)
-    );
+  reviewReport(id: number, data: ReportReviewRequestDto): Observable<ApiResponse<ReportResponseDto>> {
+    return this.http.put<ApiResponse<ReportResponseDto>>(`${this.apiUrl}/${id}/review`, data);
   }
 
-  reviewReport(id: string, data: any): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/${id}/review`, data).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-  exportPdf(id: string): Observable<Blob> {
-    return this.http.get(`${this.apiUrl}/${id}/export-pdf`, { responseType: 'blob' }).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-  private handleError(error: any) {
-    console.error('An error occurred:', error);
-    return throwError(() => new Error(error.message || 'Server error'));
+  exportPdf(id: number): Observable<ApiResponse<string>> {
+    return this.http.get<ApiResponse<string>>(`${this.apiUrl}/${id}/export-pdf`);
   }
 }

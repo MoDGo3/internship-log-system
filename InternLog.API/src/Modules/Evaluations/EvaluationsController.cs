@@ -33,9 +33,9 @@ public class EvaluationsController : ControllerBase
         return Ok(ApiResponse<EvaluationResponseDto>.Ok(evaluation));
     }
 
-    /// <summary>สร้างการประเมิน (supervisor_eval หรือ student_eval)</summary>
+    /// <summary>สร้างการประเมิน (advisor_eval หรือ student_eval)</summary>
     [HttpPost]
-    [Authorize(Roles = "supervisor,advisor,student")]
+    [Authorize(Roles = "advisor,student")]
     public async Task<IActionResult> CreateEvaluation([FromBody] EvaluationRequestDto request)
     {
         var result = await _evaluationService.CreateEvaluationAsync(request);

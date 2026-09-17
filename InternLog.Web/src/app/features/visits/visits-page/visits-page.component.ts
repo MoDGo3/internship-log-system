@@ -3,8 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdvisorVisitsService } from '../../../core/services/advisor-visits.service';
 import { AuthService } from '../../../core/auth/auth.service';
-import { VisitRecord } from '../../../models/visit.model';
+import { AdvisorVisitResponseDto } from '../../../models/visit.model';
 import { format } from 'date-fns';
+
+interface VisitVM extends AdvisorVisitResponseDto {
+  dateFormatted: string;
+}
 
 @Component({
   selector: 'app-visits-page',
@@ -15,7 +19,8 @@ import { format } from 'date-fns';
 })
 export class VisitsPageComponent implements OnInit {
   isAdvisor = false; // We can check this based on logged-in role
-  visits: any[] = [];
+  visits: VisitVM[] = [];
+  internshipID = 1;
 
   constructor(
     private visitsService: AdvisorVisitsService,
@@ -23,18 +28,21 @@ export class VisitsPageComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.isAdvisor = this.authService.currentUser()?.role === 'advisor';
+    this.authService.getMe().subscribe(res => {
+      if (res.success && res.data) {
+        this.isAdvisor = res.data.role === 'advisor';
+      }
+    });
     this.loadVisits();
   }
 
   loadVisits() {
-    this.visitsService.getVisits().subscribe({
+    this.visitsService.getVisits(this.internshipID).subscribe({
       next: (res) => {
-        const data = res.data;
-        if (data) {
-          this.visits = data.map((v: VisitRecord) => ({
+        if (res.success && res.data) {
+          this.visits = res.data.map((v: AdvisorVisitResponseDto) => ({
             ...v,
-            studentName: 'นักศึกษา', // The backend might return student object or ID
+            studentName: v.studentName || 'นักศึกษา',
             advisorName: v.advisorName || 'อาจารย์นิเทศ',
             dateFormatted: v.visitDate ? format(new Date(v.visitDate), 'dd MMM yyyy') : '-'
           }));
@@ -49,11 +57,10 @@ export class VisitsPageComponent implements OnInit {
   }
 
   addVisit() {
-    // In a real implementation this would open a dialog or navigate to a form
     alert('เปิดหน้าต่างบันทึกการนิเทศ (สำหรับอาจารย์)');
   }
 
-  viewDetails(visit: any) {
+  viewDetails(visit: VisitVM) {
     alert(`เปิดรายละเอียดการนิเทศครั้งที่ ${visit.visitNo}`);
   }
 }
