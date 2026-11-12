@@ -1,22 +1,18 @@
-# 🧪 ระบบจดบันทึกการฝึกงาน — เอกสารส่วนที่ 10
-> รายการ QA ทดสอบระบบทั้งหมด (Backend + Frontend + Integration + Security + Performance + UAT)
-> จัดทำเมื่อ 14 สิงหาคม 2569 | ชื่อไฟล์แนะนำ: `internship-log-qa-test-cases.md`
->
-> **แผนที่เอกสารทั้งชุด**
-> - ส่วนที่ 1 `internship-log-system-docs.md` → โครงสร้างระบบ + ERD + Backend
-> - ส่วนที่ 2 `internship-log-ui-design.md` → UI Design 20 หน้า
-> - ส่วนที่ 3 `internship-log-analysis-sql.md` → Use Cases/SRS + Sequence + SQL
-> - ส่วนที่ 4 `internship-log-review-decisions.md` → มติแก้ไข (Review v2)
-> - ส่วนที่ 5 `internship-log-development-roadmap.md` → แผนพัฒนา
-> - ส่วนที่ 6 `internship-log-figma-checklist.md` → รายการงาน Figma
-> - ส่วนที่ 7 `internship-log-auth-gap-fix.md` → แก้ไข Auth
-> - ส่วนที่ 8 `internship-log-modular-architecture.md` → โครงสร้าง Modular
-> - ส่วนที่ 9 `internship-log-figma-page-specs.md` → รายละเอียดออกแบบทุกหน้า
-> - ส่วนที่ 10 `internship-log-qa-test-cases.md` → เอกสารฉบับนี้
+# QA Test Cases
+
+_รายการทดสอบ Backend, Frontend, Integration, Security, Performance และ UAT_
+
+> ⚠️ **เอกสารอ้างอิงจากช่วงออกแบบ/พัฒนา** — รวมจากไฟล์เดิมหลายไฟล์ เนื้อหาคงไว้ตามต้นฉบับ
+> บางส่วนอาจไม่ตรงกับโค้ดปัจจุบัน (เช่น ระบุ .NET 8 แต่ใช้ .NET 10 จริง, โมดูล Messages ถูกลบแล้ว,
+> ระบบคำนวณมาสายถูกยกเลิก) — ข้อมูลที่ตรงกับโค้ดล่าสุดดูที่ [architecture.md](../architecture.md), [api-reference.md](../api-reference.md) และ [project-status.md](../project-status.md)
 
 ---
 
-## 📋 สารบัญ
+## QA Test Cases (ส่วนที่ 10)
+
+> ต้นฉบับ: `docs/internship-log-qa-test-cases.md` · จัดทำ 14 ส.ค. 2569
+
+### 📋 สารบัญ
 
 1. [Backend API Testing (70 cases)](#1-backend-api-testing)
 2. [Frontend UI/UX Testing (41 cases)](#2-frontend-uiux-testing)
@@ -30,9 +26,9 @@
 
 ---
 
-## 1. Backend API Testing
+### 1. Backend API Testing
 
-### 1.1 Auth Module (13 Test Cases)
+#### 1.1 Auth Module (13 Test Cases)
 
 | TC-ID | Test Name | Method | Endpoint | Priority | Expected Result |
 |---|---|---|---|---|---|
@@ -50,7 +46,7 @@
 | AUTH-12 | Change Password | PUT | /api/auth/change-password | Medium | 200 + ต้อง login ใหม่ด้วยรหัสใหม่ |
 | AUTH-13 | Logout | POST | /api/auth/logout | Medium | 200 + refreshToken ถูก revoke |
 
-### 1.2 Attendance Module (11 Test Cases)
+#### 1.2 Attendance Module (11 Test Cases)
 
 | TC-ID | Test Name | Priority | Expected Result |
 |---|---|---|---|
@@ -66,7 +62,7 @@
 | ATT-10 | Review Edit (อนุมัติ) | **High** | status updated + WorkLogs.Hours synced |
 | ATT-11 | Advisor เรียก check-in | **High** | 403 Forbidden |
 
-### 1.3 Leaves Module (8 Test Cases)
+#### 1.3 Leaves Module (8 Test Cases)
 
 | TC-ID | Test Name | Priority | Expected Result |
 |---|---|---|---|
@@ -79,7 +75,7 @@
 | LEA-07 | Get Pending (advisor) | Medium | 200 + รายการรออนุมัติ |
 | LEA-08 | Upload ใบรับรองแพทย์ | Medium | 200 + file path ถูกเก็บใน DB |
 
-### 1.4 WorkLogs Module (10 Test Cases)
+#### 1.4 WorkLogs Module (10 Test Cases)
 
 | TC-ID | Test Name | Priority | Expected Result |
 |---|---|---|---|
@@ -94,7 +90,7 @@
 | WL-09 | Get List (filter by month/status) | Medium | 200 + ข้อมูลตาม filter |
 | WL-10 | Hours คำนวณจาก Attendance | **High** | Hours = TotalHours ของวันนั้น (auto) |
 
-### 1.5 Tasks Module (7 Test Cases)
+#### 1.5 Tasks Module (7 Test Cases)
 
 | TC-ID | Test Name | Priority | Expected Result |
 |---|---|---|---|
@@ -106,7 +102,7 @@
 | TASK-06 | มอบหมายงานข้าม internship | **High** | 400 "ไม่สามารถมอบหมายงานข้ามการฝึกได้" |
 | TASK-07 | Student มอบหมายงาน | **High** | 403 Forbidden |
 
-### 1.6 AdvisorVisits Module (5 Test Cases)
+#### 1.6 AdvisorVisits Module (5 Test Cases)
 
 | TC-ID | Test Name | Priority | Expected Result |
 |---|---|---|---|
@@ -116,7 +112,7 @@
 | VISIT-04 | Get Visits (by internshipId) | Medium | 200 + รายการนิเทศ |
 | VISIT-05 | Student บันทึกการนิเทศ | **High** | 403 Forbidden |
 
-### 1.7 Reports Module (5 Test Cases)
+#### 1.7 Reports Module (5 Test Cases)
 
 | TC-ID | Test Name | Priority | Expected Result |
 |---|---|---|---|
@@ -126,7 +122,7 @@
 | RPT-04 | Export PDF | **High** | 200 + PDF file (blob) |
 | RPT-05 | Get Reports (by period) | Medium | 200 + รายการรายงาน |
 
-### 1.8 Messages Module (4 Test Cases)
+#### 1.8 Messages Module (4 Test Cases)
 
 | TC-ID | Test Name | Priority | Expected Result |
 |---|---|---|---|
@@ -135,7 +131,7 @@
 | MSG-03 | Mark as Read | Medium | IsRead = true |
 | MSG-04 | ส่งข้อความถึงตัวเอง | Medium | 400 "ไม่สามารถส่งข้อความถึงตัวเองได้" |
 
-### 1.9 Notifications Module (3 Test Cases)
+#### 1.9 Notifications Module (3 Test Cases)
 
 | TC-ID | Test Name | Priority | Expected Result |
 |---|---|---|---|
@@ -143,7 +139,7 @@
 | NOTIF-02 | Mark as Read | Medium | IsRead = true |
 | NOTIF-03 | Mark All as Read | Medium | ทุกอัน IsRead = true |
 
-### 1.10 Evaluations Module (4 Test Cases)
+#### 1.10 Evaluations Module (4 Test Cases)
 
 | TC-ID | Test Name | Priority | Expected Result |
 |---|---|---|---|
@@ -152,7 +148,7 @@
 | EVAL-03 | ประเมินซ้ำ | **High** | 400 "你已经ประเมินแล้ว" |
 | EVAL-04 | Get Evaluations | Medium | 200 + ผลประเมิน |
 
-### 1.11 Admin Module (6 Test Cases)
+#### 1.11 Admin Module (6 Test Cases)
 
 | TC-ID | Test Name | Priority | Expected Result |
 |---|---|---|---|
@@ -165,9 +161,9 @@
 
 ---
 
-## 2. Frontend UI/UX Testing
+### 2. Frontend UI/UX Testing
 
-### 2.1 Authentication Pages (6 Test Cases)
+#### 2.1 Authentication Pages (6 Test Cases)
 
 | TC-ID | Page | Test Name | Priority | Expected Result |
 |---|---|---|---|---|
@@ -178,7 +174,7 @@
 | UI-05 | Register | Password strength meter | Medium | แสดง 4 ระดับ (อ่อน/ปานกลาง/ดี/ดีมาก) |
 | UI-06 | Forgot Password | Submit email | Medium | แสดงข้อความ "หากอีเมลมีอยู่..." |
 
-### 2.2 Dashboard Pages (4 Test Cases)
+#### 2.2 Dashboard Pages (4 Test Cases)
 
 | TC-ID | Page | Test Name | Priority | Expected Result |
 |---|---|---|---|---|
@@ -187,7 +183,7 @@
 | UI-09 | Dashboard (Advisor) | คิวรออนุมัติ | **High** | แสดงรายการ + badge จำนวน |
 | UI-10 | Dashboard (Advisor) | อนุมัติ/ตีกลับ | **High** | สถานะเปลี่ยน + notification ส่ง |
 
-### 2.3 Attendance Page (5 Test Cases)
+#### 2.3 Attendance Page (5 Test Cases)
 
 | TC-ID | Test Name | Priority | Expected Result |
 |---|---|---|---|
@@ -197,7 +193,7 @@
 | UI-14 | ขอแก้เวลา (Modal) | Medium | Modal เปิด + form validation |
 | UI-15 | StatCards สรุป | Medium | ชั่วโมง/สาย/ขาด ถูกต้อง |
 
-### 2.4 Leaves Page (4 Test Cases)
+#### 2.4 Leaves Page (4 Test Cases)
 
 | TC-ID | Test Name | Priority | Expected Result |
 |---|---|---|---|
@@ -206,7 +202,7 @@
 | UI-18 | Upload ใบรับรองแพทย์ | Medium | File ถูกอัปโหลด + แสดงชื่อ |
 | UI-19 | Filter สถานะ | Medium | ตารางกรองตามสถานะ |
 
-### 2.5 Calendar Page (3 Test Cases)
+#### 2.5 Calendar Page (3 Test Cases)
 
 | TC-ID | Test Name | Priority | Expected Result |
 |---|---|---|---|
@@ -214,7 +210,7 @@
 | UI-21 | คลิกวัน → SideDrawer | **High** | Drawer เลื่อนจากขวา + แสดงข้อมูล |
 | UI-22 | Navigate เดือน | Medium | < > เปลี่ยนเดือน + reload data |
 
-### 2.6 WorkLogs Pages (5 Test Cases)
+#### 2.6 WorkLogs Pages (5 Test Cases)
 
 | TC-ID | Test Name | Priority | Expected Result |
 |---|---|---|---|
@@ -224,7 +220,7 @@
 | UI-26 | คอมเมนต์อาจารย์ | Medium | แสดงเฉพาะ submitted/approved/returned |
 | UI-27 | ปุ่มส่งอนุมัติ | **High** | Disabled ถ้าฟอร์มไม่ครบ |
 
-### 2.7 Tasks Page (3 Test Cases)
+#### 2.7 Tasks Page (3 Test Cases)
 
 | TC-ID | Test Name | Priority | Expected Result |
 |---|---|---|---|
@@ -232,7 +228,7 @@
 | UI-29 | Drag & Drop Card | **High** | ลาก card ระหว่างคอลัมน์ + status อัปเดต |
 | UI-30 | Modal มอบหมายงาน | Medium | Form validation + submit |
 
-### 2.8 Other Pages (8 Test Cases)
+#### 2.8 Other Pages (8 Test Cases)
 
 | TC-ID | Page | Test Name | Priority | Expected Result |
 |---|---|---|---|---|
@@ -245,7 +241,7 @@
 | UI-37 | Evaluation | Rating ดาว | **High** | คลิกดาว → score อัปเดต |
 | UI-38 | Profile | เปลี่ยนรูป Avatar | Medium | Crop + upload + refresh |
 
-### 2.9 Admin Pages (3 Test Cases)
+#### 2.9 Admin Pages (3 Test Cases)
 
 | TC-ID | Test Name | Priority | Expected Result |
 |---|---|---|---|
@@ -255,9 +251,9 @@
 
 ---
 
-## 3. Integration Testing
+### 3. Integration Testing
 
-### 3.1 Backend ↔ Frontend (10 Test Cases)
+#### 3.1 Backend ↔ Frontend (10 Test Cases)
 
 | TC-ID | Test Name | Priority | Expected Result |
 |---|---|---|---|
@@ -274,9 +270,9 @@
 
 ---
 
-## 4. Security Testing
+### 4. Security Testing
 
-### 4.1 Authentication & Authorization (8 Test Cases)
+#### 4.1 Authentication & Authorization (8 Test Cases)
 
 | TC-ID | Test Name | Priority | Expected Result |
 |---|---|---|---|
@@ -289,7 +285,7 @@
 | SEC-07 | Password Hash (BCrypt) | **High** | ไม่เก็บ plaintext ใน DB |
 | SEC-08 | Refresh Token Rotation | **High** | Token เก่าถูก revoke หลังใช้ |
 
-### 4.2 Data Validation (5 Test Cases)
+#### 4.2 Data Validation (5 Test Cases)
 
 | TC-ID | Test Name | Priority | Expected Result |
 |---|---|---|---|
@@ -301,9 +297,9 @@
 
 ---
 
-## 5. Performance Testing
+### 5. Performance Testing
 
-### 5.1 API Performance (5 Test Cases)
+#### 5.1 API Performance (5 Test Cases)
 
 | TC-ID | Test Name | Priority | Expected Result |
 |---|---|---|---|
@@ -313,7 +309,7 @@
 | PERF-04 | Export PDF | Medium | < 3s |
 | PERF-05 | Concurrent Users (50 users) | **High** | ไม่มี error + response time ไม่เพิ่มมาก |
 
-### 5.2 Frontend Performance (3 Test Cases)
+#### 5.2 Frontend Performance (3 Test Cases)
 
 | TC-ID | Test Name | Priority | Expected Result |
 |---|---|---|---|
@@ -323,9 +319,9 @@
 
 ---
 
-## 6. User Acceptance Testing (UAT)
+### 6. User Acceptance Testing (UAT)
 
-### 6.1 Student Role (10 Test Cases)
+#### 6.1 Student Role (10 Test Cases)
 
 | TC-ID | Scenario | Priority | Expected Result |
 |---|---|---|---|
@@ -340,7 +336,7 @@
 | UAT-S09 | ดูแจ้งเตือน | Medium | แจ้งเตือนมาเมื่อมีการอนุมัติ |
 | UAT-S10 | แก้ไขโปรไฟล์ | Low | บันทึกข้อมูลส่วนตัวได้ |
 
-### 6.2 Advisor Role (8 Test Cases)
+#### 6.2 Advisor Role (8 Test Cases)
 
 | TC-ID | Scenario | Priority | Expected Result |
 |---|---|---|---|
@@ -353,7 +349,7 @@
 | UAT-A07 | แชทกับนักศึกษา | Medium | ส่ง/รับข้อความได้ |
 | UAT-A08 | ดูปฏิทิน นศ. ที่ดูแล | Medium | เห็นสีสถานะของ นศ. |
 
-### 6.3 Supervisor Role (5 Test Cases)
+#### 6.3 Supervisor Role (5 Test Cases)
 
 | TC-ID | Scenario | Priority | Expected Result |
 |---|---|---|---|
@@ -363,7 +359,7 @@
 | UAT-SP04 | ดูความคืบหน้า นศ. | Medium | Dashboard แสดงข้อมูล |
 | UAT-SP05 | แชทกับนักศึกษา | Medium | ส่ง/รับข้อความได้ |
 
-### 6.4 Admin Role (5 Test Cases)
+#### 6.4 Admin Role (5 Test Cases)
 
 | TC-ID | Scenario | Priority | Expected Result |
 |---|---|---|---|
@@ -375,9 +371,9 @@
 
 ---
 
-## 7. Test Summary & Coverage
+### 7. Test Summary & Coverage
 
-### 7.1 สรุปจำนวน Test Cases
+#### 7.1 สรุปจำนวน Test Cases
 
 | Category | จำนวน | High Priority | Medium Priority | Low Priority |
 |---|---|---|---|---|
@@ -389,7 +385,7 @@
 | UAT | 28 | 18 | 8 | 2 |
 | **รวม** | **170** | **110** | **51** | **9** |
 
-### 7.2 Coverage ตามโมดูล
+#### 7.2 Coverage ตามโมดูล
 
 | Module | Backend | Frontend | Integration | Security | UAT | Total |
 |---|---|---|---|---|---|---|
@@ -410,7 +406,7 @@
 | Profile | - | 1 | - | - | 1 | 2 |
 | **รวม** | **70** | **41** | **10** | **4** | **28** | **170** |
 
-### 7.3 Definition of Done (DoD)
+#### 7.3 Definition of Done (DoD)
 
 **Backend API:**
 - [ ] ทุก endpoint ตอบ response ถูกต้องตาม spec
@@ -441,9 +437,9 @@
 
 ---
 
-## 8. Test Execution Plan
+### 8. Test Execution Plan
 
-### 8.1 ลำดับการทดสอบ
+#### 8.1 ลำดับการทดสอบ
 
 ```
 Phase 1: Backend API Testing (Week 1-2)
@@ -474,7 +470,7 @@ Phase 5: UAT (Week 7)
 └── Admin Role (UAT-AD01 to UAT-AD05)
 ```
 
-### 8.2 Tools แนะนำ
+#### 8.2 Tools แนะนำ
 
 | Category | Tool | Usage |
 |---|---|---|
@@ -488,7 +484,7 @@ Phase 5: UAT (Week 7)
 
 ---
 
-## 9. Bug Reporting Template
+### 9. Bug Reporting Template
 
 ```markdown
 **Bug ID:** [AUTO-GENERATED]
@@ -526,9 +522,9 @@ Phase 5: UAT (Week 7)
 
 ---
 
-## 10. Test Data Preparation
+### 10. Test Data Preparation
 
-### 10.1 ข้อมูลทดสอบที่ต้องเตรียม
+#### 10.1 ข้อมูลทดสอบที่ต้องเตรียม
 
 **Users (4 roles):**
 - student@test.com / Student@1234
@@ -548,7 +544,7 @@ Phase 5: UAT (Week 7)
 - ลากิจ: 3 วัน
 - ลาพักร้อน: 6 วัน
 
-### 10.2 SQL สำหรับเตรียมข้อมูลทดสอบ
+#### 10.2 SQL สำหรับเตรียมข้อมูลทดสอบ
 
 ```sql
 -- สร้างผู้ใช้ทดสอบ (password = BCrypt hash ของ "Test@1234")
@@ -571,9 +567,9 @@ VALUES (N'ภาคเรียนที่ 1/2569', '2026-06-01', '2026-08-31',
 
 ---
 
-## 11. Test Environment Setup
+### 11. Test Environment Setup
 
-### 11.1 Backend Environment
+#### 11.1 Backend Environment
 ```bash
 # Development
 ASPNETCORE_ENVIRONMENT=Development
@@ -585,7 +581,7 @@ ASPNETCORE_ENVIRONMENT=Production
 ConnectionStrings__DefaultConnection=Server=prod-server;Database=InternLogDB;User Id=sa;Password=***;
 ```
 
-### 11.2 Frontend Environment
+#### 11.2 Frontend Environment
 ```typescript
 // environments/environment.ts (dev)
 export const environment = {
@@ -600,16 +596,16 @@ export const environment = {
 };
 ```
 
-### 11.3 Database
+#### 11.3 Database
 - **Development:** InternLogDB (local SQL Server)
 - **Testing:** InternLogDB_Test (แยก database สำหรับ test)
 - **Production:** InternLogDB_Prod (server จริง)
 
 ---
 
-## 12. Continuous Integration (CI) Integration
+### 12. Continuous Integration (CI) Integration
 
-### 12.1 GitHub Actions Example
+#### 12.1 GitHub Actions Example
 ```yaml
 name: CI/CD Pipeline
 
@@ -653,7 +649,7 @@ jobs:
 
 ---
 
-## 13. Test Report Template
+### 13. Test Report Template
 
 ```markdown
 # Test Report - [Sprint/Version Name]
@@ -690,9 +686,9 @@ jobs:
 
 ---
 
-## 14. Automation Strategy
+### 14. Automation Strategy
 
-### 14.1 Test Automation Pyramid
+#### 14.1 Test Automation Pyramid
 ```
         /\
        /  \  E2E Tests (10%) - Cypress/Playwright
@@ -703,7 +699,7 @@ jobs:
   /____________\
 ```
 
-### 14.2 Priority for Automation
+#### 14.2 Priority for Automation
 1. **Must Automate:**
    - Auth flow (login/refresh/logout)
    - Core business logic (check-in/out, leave quota)
@@ -721,7 +717,7 @@ jobs:
 
 ---
 
-## 15. Regression Testing Checklist
+### 15. Regression Testing Checklist
 
 After every major change, run these critical tests:
 - [ ] AUTH-01: Login สำเร็จ
