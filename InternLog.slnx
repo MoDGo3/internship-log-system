@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="InternLog.API.Tests/InternLog.API.Tests.csproj" />
+  <Project Path="InternLog.API/InternLog.API.csproj" />
+</Solution>

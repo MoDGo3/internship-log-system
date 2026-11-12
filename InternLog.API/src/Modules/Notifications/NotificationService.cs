@@ -68,7 +68,7 @@ public class NotificationService : INotificationService
             Message = message,
             Link = link,
             IsRead = false,
-            CreatedAt = DateTime.Now
+            CreatedAt = AppClock.Now
         };
 
         _context.Notifications.Add(notification);

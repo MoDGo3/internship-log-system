@@ -6,6 +6,11 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace InternLog.API.Modules.Attendance;
 
+public class NoteDto
+{
+    public string? Note { get; set; }
+}
+
 [Route("api/[controller]")]
 [ApiController]
 public class AttendanceController : ControllerBase
@@ -21,27 +26,25 @@ public class AttendanceController : ControllerBase
 
     [HttpPost("check-in")]
     [Authorize(Roles = "student")]
-    public async Task<IActionResult> CheckIn(
-        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] string? note)
+    public async Task<IActionResult> CheckIn([FromBody] NoteDto? dto)
     {
-        var result = await _attendanceService.CheckInAsync(_currentUser.UserId, note);
+        var result = await _attendanceService.CheckInAsync(_currentUser.UserId, dto?.Note);
         return Ok(ApiResponse<AttendanceDto>.Ok(result, "ลงเวลาเข้างานสำเร็จ"));
     }
 
     [HttpPost("check-out")]
     [Authorize(Roles = "student")]
-    public async Task<IActionResult> CheckOut(
-        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] string? note)
+    public async Task<IActionResult> CheckOut([FromBody] NoteDto? dto)
     {
-        var result = await _attendanceService.CheckOutAsync(_currentUser.UserId, note);
+        var result = await _attendanceService.CheckOutAsync(_currentUser.UserId, dto?.Note);
         return Ok(ApiResponse<AttendanceDto>.Ok(result, "ลงเวลาออกงานสำเร็จ"));
     }
 
     [HttpGet]
     [Authorize(Roles = "student,advisor,admin")]
-    public async Task<IActionResult> GetHistory([FromQuery] int? month, [FromQuery] int? year)
+    public async Task<IActionResult> GetHistory([FromQuery] int? month, [FromQuery] int? year, [FromQuery] int? studentId)
     {
-        var result = await _attendanceService.GetHistoryAsync(_currentUser.UserId, month, year);
+        var result = await _attendanceService.GetHistoryAsync(_currentUser.UserId, month, year, studentId);
         return Ok(ApiResponse<IEnumerable<AttendanceDto>>.Ok(result));
     }
 

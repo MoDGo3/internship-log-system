@@ -23,6 +23,23 @@ public class EvaluationService : IEvaluationService
         var userId = _currentUser.UserId;
         var role = _currentUser.Role;
 
+        // ถ้าไม่ส่ง internshipId (= 0) ให้ auto-resolve จาก active internship ของ user ปัจจุบัน
+        if (internshipId == 0)
+        {
+            if (role == Constants.Roles.Student)
+            {
+                var activeInternship = await _context.Internships
+                    .FirstOrDefaultAsync(i => i.StudentID == userId && i.Status == "active");
+                if (activeInternship == null)
+                    return Enumerable.Empty<EvaluationResponseDto>();
+                internshipId = activeInternship.InternshipID;
+            }
+            else
+            {
+                return Enumerable.Empty<EvaluationResponseDto>();
+            }
+        }
+
         var internship = await _context.Internships
             .Include(i => i.Student)
             .FirstOrDefaultAsync(i => i.InternshipID == internshipId);
@@ -31,10 +48,9 @@ public class EvaluationService : IEvaluationService
             throw AppException.NotFound("ไม่พบข้อมูลการฝึกงานนี้");
 
         // เช็คว่าคุณมีสิทธิ์ดูข้อมูลนี้หรือไม่
-        bool canAccess = role == "admin"
-            || (role == "student" && internship.StudentID == userId)
-            || (role == "advisor" && internship.AdvisorID == userId)
-            || (role == "admin");
+        bool canAccess = role == Constants.Roles.Admin
+            || (role == Constants.Roles.Student && internship.StudentID == userId)
+            || (role == Constants.Roles.Advisor && internship.AdvisorID == userId);
 
         if (!canAccess)
             throw AppException.Forbidden("คุณไม่มีสิทธิ์เข้าถึงข้อมูลนี้");
@@ -76,7 +92,7 @@ public class EvaluationService : IEvaluationService
         // student_eval: ทำได้เฉพาะนักศึกษาเจ้าของ
         if (request.EvaluatorRole == "advisor_eval")
         {
-            if (role != "advisor")
+            if (role != Constants.Roles.Advisor)
                 throw AppException.Forbidden("เฉพาะ Advisor เท่านั้นที่ประเมินได้");
 
             if (internship.AdvisorID != userId)
@@ -84,7 +100,7 @@ public class EvaluationService : IEvaluationService
         }
         else if (request.EvaluatorRole == "student_eval")
         {
-            if (role != "student" || internship.StudentID != userId)
+            if (role != Constants.Roles.Student || internship.StudentID != userId)
                 throw AppException.Forbidden("เฉพาะนักศึกษาเจ้าของการฝึกงานเท่านั้นที่ประเมินได้");
         }
         else
@@ -106,7 +122,7 @@ public class EvaluationService : IEvaluationService
             TotalScore = request.TotalScore,
             Grade = request.Grade,
             Comment = request.Comment,
-            CreatedAt = DateTime.Now
+            CreatedAt = AppClock.Now
         };
 
         _context.Evaluations.Add(evaluation);

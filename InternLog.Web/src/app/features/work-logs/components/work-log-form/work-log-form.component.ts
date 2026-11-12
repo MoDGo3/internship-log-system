@@ -3,6 +3,7 @@ import { CommonModule, Location } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { WorkLogService } from '../../services/work-log.service';
+import { FileDownloadService } from '../../../../core/services/file-download.service';
 import { WorkCategory, WorkLog } from '../../models/work-log.model';
 import { finalize } from 'rxjs';
 
@@ -91,7 +92,7 @@ import { finalize } from 'rxjs';
             <div class="file-list" *ngIf="existingAttachments().length > 0">
               <label class="list-label">ไฟล์ที่อัปโหลดไว้แล้ว</label>
               <div class="file-item" *ngFor="let file of existingAttachments()">
-                <span class="file-name">📎 {{ file.fileName }}</span>
+                <button type="button" class="file-name file-link" (click)="openAttachment(file.fileUrl)">📎 {{ file.fileName }}</button>
                 <button type="button" class="btn-remove" (click)="removeExistingFile(file.attachmentID)">ลบ</button>
               </div>
             </div>
@@ -162,6 +163,8 @@ import { finalize } from 'rxjs';
     .file-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #F3F4F6; border-radius: 6px; margin-bottom: 8px; font-size: 14px; }
     .file-item.new-file { background: #EEF2FF; }
     .file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
+    .file-link { background: transparent; border: none; padding: 0; color: inherit; font: inherit; cursor: pointer; text-align: left; }
+    .file-link:hover { text-decoration: underline; }
     .btn-remove { background: transparent; border: none; color: #DC2626; cursor: pointer; font-size: 12px; font-weight: 600; }
     .btn-remove:hover { text-decoration: underline; }
     
@@ -186,6 +189,7 @@ import { finalize } from 'rxjs';
 export class WorkLogFormComponent implements OnInit {
   private fb = inject(FormBuilder);
   private logService = inject(WorkLogService);
+  private fileDownload = inject(FileDownloadService);
   private route = inject(ActivatedRoute);
   private location = inject(Location);
 
@@ -304,6 +308,12 @@ export class WorkLogFormComponent implements OnInit {
 
   removeNewFile(index: number) {
     this.newFiles.update(current => current.filter((_, i) => i !== index));
+  }
+
+  openAttachment(fileUrl: string) {
+    this.fileDownload.open(fileUrl).subscribe({
+      error: () => this.errorMessage.set('ไม่สามารถเปิดไฟล์แนบได้')
+    });
   }
 
   removeExistingFile(attachmentId: number) {

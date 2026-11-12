@@ -81,6 +81,14 @@ public class WorkLogsController : ControllerBase
         return Ok(ApiResponse<AttachmentResponseDto>.Ok(result, "อัปโหลดไฟล์เรียบร้อย"));
     }
 
+    [HttpGet("attachments/{id}")]
+    [Authorize(Roles = "student,advisor,admin")]
+    public async Task<IActionResult> DownloadAttachment(int id)
+    {
+        var file = await _workLogService.GetAttachmentAsync(id);
+        return File(file.Content, file.ContentType, file.DownloadName);
+    }
+
     [HttpDelete("/api/attachments/{id}")]
     [Authorize(Roles = "student")]
     public async Task<IActionResult> DeleteAttachment(int id)

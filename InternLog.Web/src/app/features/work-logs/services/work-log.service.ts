@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, forkJoin, of } from 'rxjs';
+import { map, switchMap } from 'rxjs/operators';
 import { WorkLog, WorkCategory, LogComment } from '../models/work-log.model';
 import { ApiResponse } from '../../../core/models/api-response.model';
 import { environment } from '../../../../environments/environment';
@@ -23,43 +24,75 @@ export class WorkLogService {
     return this.http.get<ApiResponse<WorkLog>>(`${this.baseUrl}/${id}`);
   }
 
-  createLog(data: Partial<WorkLog>, files: File[] = []): Observable<ApiResponse<WorkLog>> {
+  uploadFile(logId: number, file: File): Observable<ApiResponse<any>> {
     const formData = new FormData();
-    formData.append('logDate', data.logDate!);
-    formData.append('title', data.title!);
-    formData.append('description', data.description!);
-    
-    if (data.problem) formData.append('problem', data.problem);
-    if (data.solution) formData.append('solution', data.solution);
-    if (data.categoryID) formData.append('categoryID', data.categoryID.toString());
-    if (data.hours) formData.append('hours', data.hours.toString());
+    formData.append('file', file, file.name);
+    return this.http.post<ApiResponse<any>>(`${this.baseUrl}/${logId}/attachments`, formData);
+  }
 
-    files.forEach(file => {
-      formData.append('attachments', file, file.name);
-    });
+  deleteAttachment(attId: number): Observable<ApiResponse<any>> {
+    return this.http.delete<ApiResponse<any>>(`${environment.apiUrl}/attachments/${attId}`); 
+  }
 
-    return this.http.post<ApiResponse<WorkLog>>(this.baseUrl, formData);
+  createLog(data: Partial<WorkLog>, files: File[] = []): Observable<ApiResponse<WorkLog>> {
+    const requestDto = {
+      CategoryID: data.categoryID,
+      LogDate: data.logDate,
+      Title: data.title,
+      Detail: data.description,
+      Problem: data.problem,
+      Solution: data.solution
+    };
+
+    return this.http.post<ApiResponse<WorkLog>>(this.baseUrl, requestDto, {
+      headers: { 'Content-Type': 'application/json' }
+    }).pipe(
+      // After log is created, upload files if any
+      switchMap(res => {
+        if (!res.success || !res.data) return of(res);
+        const logId = res.data.logID || (res.data as any).id; // fallback id
+        
+        if (files.length === 0) return of(res);
+        
+        // Upload all files sequentially or in parallel
+        const uploadTasks = files.map(file => this.uploadFile(logId, file));
+        return forkJoin(uploadTasks).pipe(
+          map(() => res) // Return the original create log response
+        );
+      })
+    );
   }
 
   updateLog(id: number, data: Partial<WorkLog>, newFiles: File[] = [], removedAttachmentIds: number[] = []): Observable<ApiResponse<WorkLog>> {
-    const formData = new FormData();
-    if (data.logDate) formData.append('logDate', data.logDate);
-    if (data.title) formData.append('title', data.title);
-    if (data.description) formData.append('description', data.description);
-    if (data.problem) formData.append('problem', data.problem);
-    if (data.solution) formData.append('solution', data.solution);
-    if (data.categoryID) formData.append('categoryID', data.categoryID.toString());
-    if (data.hours) formData.append('hours', data.hours.toString());
+    const requestDto = {
+      CategoryID: data.categoryID,
+      LogDate: data.logDate,
+      Title: data.title,
+      Detail: data.description,
+      Problem: data.problem,
+      Solution: data.solution
+    };
 
-    newFiles.forEach(file => {
-      formData.append('newAttachments', file, file.name);
-    });
+    const deleteTasks = removedAttachmentIds.map(attId => this.deleteAttachment(attId));
+    let delete$: Observable<any> = of(null);
+    if (deleteTasks.length > 0) {
+      delete$ = forkJoin(deleteTasks);
+    }
 
-    removedAttachmentIds.forEach(attId => {
-      formData.append('removedAttachmentIds', attId.toString());
-    });
+    return delete$.pipe(
+      switchMap(() => this.http.put<ApiResponse<WorkLog>>(`${this.baseUrl}/${id}`, requestDto, {
+        headers: { 'Content-Type': 'application/json' }
+      })),
+      switchMap((res: ApiResponse<WorkLog>) => {
+        if (!res.success || !res.data || newFiles.length === 0) return of(res);
 
-    return this.http.put<ApiResponse<WorkLog>>(`${this.baseUrl}/${id}`, formData);
+        
+        const uploadTasks = newFiles.map(file => this.uploadFile(id, file));
+        return forkJoin(uploadTasks).pipe(
+          map(() => res)
+        );
+      })
+    );
   }
 
   deleteLog(id: number): Observable<ApiResponse<boolean>> {

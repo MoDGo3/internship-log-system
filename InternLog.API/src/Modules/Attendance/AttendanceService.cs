@@ -16,8 +16,8 @@ public class AttendanceService : IAttendanceService
 
     public async Task<AttendanceDto> CheckInAsync(int studentId, string? note)
     {
-        var today = DateOnly.FromDateTime(DateTime.Now);
-        var timeNow = TimeOnly.FromDateTime(DateTime.Now);
+        var today = AppClock.Today;
+        var timeNow = AppClock.TimeOfDay;
 
         // หา Internship ที่ active เพื่อดึงเวลาเข้างานของบริษัท
         var internship = await _context.Internships
@@ -63,8 +63,8 @@ public class AttendanceService : IAttendanceService
 
     public async Task<AttendanceDto> CheckOutAsync(int studentId, string? note)
     {
-        var today = DateOnly.FromDateTime(DateTime.Now);
-        var timeNow = TimeOnly.FromDateTime(DateTime.Now);
+        var today = AppClock.Today;
+        var timeNow = AppClock.TimeOfDay;
 
         var attendance = await _context.Attendances
             .Include(a => a.Student)
@@ -97,13 +97,28 @@ public class AttendanceService : IAttendanceService
         return MapToDto(attendance, attendance.Student.FirstName);
     }
 
-    public async Task<IEnumerable<AttendanceDto>> GetHistoryAsync(int userId, int? month, int? year)
+    public async Task<IEnumerable<AttendanceDto>> GetHistoryAsync(int userId, int? month, int? year, int? studentId = null)
     {
-        // TODO: ตรวจสอบ Role ว่าเป็น Advisor ให้ดูของนักศึกษาตัวเองได้
-        // สำหรับตอนนี้ดึงแค่ของ userId (Student) 
+        // Advisor สามารถขอดูข้อมูลของนักศึกษาในความดูแลได้
+        int targetStudentId = userId;
+        if (studentId.HasValue && studentId.Value != userId)
+        {
+            // ตรวจสอบสิทธิ์: นักศึกษาต้องอยู่ภายใต้ advisor คนนี้
+            var internship = await _context.Internships
+                .FirstOrDefaultAsync(i =>
+                    i.StudentID == studentId.Value &&
+                    i.AdvisorID == userId          &&
+                    i.Status    == "active");
+
+            if (internship == null)
+                throw AppException.Forbidden("คุณไม่มีสิทธิ์ดูข้อมูลของนักศึกษาคนนี้");
+
+            targetStudentId = studentId.Value;
+        }
+
         var query = _context.Attendances
             .Include(a => a.Student)
-            .Where(a => a.StudentID == userId);
+            .Where(a => a.StudentID == targetStudentId);
 
         if (month.HasValue)
             query = query.Where(a => a.AttDate.Month == month.Value);

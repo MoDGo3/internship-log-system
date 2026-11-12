@@ -8,10 +8,10 @@
     <div class="date-display">วันนี้ {{ currentDate }}</div>
 
     <div class="action-buttons">
-      <button class="btn-large btn-check-in" [disabled]="isCheckedIn" (click)="checkIn()">
+      <button class="btn-large btn-check-in" [disabled]="isCheckedIn || isCompletedToday" (click)="checkIn()">
         ⬇ ลงเวลาเข้า
       </button>
-      <button class="btn-large btn-check-out" [disabled]="!isCheckedIn" (click)="checkOut()">
+      <button class="btn-large btn-check-out" [disabled]="!isCheckedIn || isCompletedToday" [class.btn-active]="isCheckedIn && !isCompletedToday" (click)="checkOut()">
         ⬆ ลงเวลาออก
       </button>
     </div>
@@ -44,7 +44,8 @@
     <div class="card-header">
       <h3>ประวัติการลงเวลา</h3>
       <div class="filter-bar">
-        <select class="form-select" [(ngModel)]="selectedMonth" (change)="onMonthChange()" aria-label="กรองตามเดือน" title="กรองตามเดือน">
+        <select class="form-select" [(ngModel)]="selectedMonth" (change)="onMonthChange()" aria-label="กรองตามเดือน"
+          title="กรองตามเดือน">
           <option *ngFor="let m of months" [value]="m.value">{{ m.label }}</option>
         </select>
       </div>

@@ -1,6 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AdminService, AdminUser } from '../services/admin.service';
+import { AdminService, AdminUser } from '../../../core/services/admin.service';
 
 @Component({
   selector: 'app-admin-users',
@@ -21,7 +21,7 @@ export class AdminUsersComponent implements OnInit {
 
   loadUsers() {
     this.isLoading = true;
-    this.adminService.getUsers().subscribe({
+    this.adminService.getUserList().subscribe({
       next: (data: AdminUser[]) => {
         this.users = data;
         this.isLoading = false;

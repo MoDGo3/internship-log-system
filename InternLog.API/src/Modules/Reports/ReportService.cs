@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using InternLog.API.Modules.Reports.DTOs;
 using InternLog.API.Core.Interfaces;
 using InternLog.API.Core.Common;
+using InternLog.API.Core.Storage;
 using InternLog.API.Infrastructure.Data;
 using InternLog.API.Infrastructure.Data.Models;
 using QuestPDF.Fluent;
@@ -14,13 +15,15 @@ public class ReportService : IReportService
 {
     private readonly AppDbContext _context;
     private readonly ICurrentUserService _currentUser;
-    private readonly IWebHostEnvironment _env;
+    private readonly IFileStorage _files;
 
-    public ReportService(AppDbContext context, ICurrentUserService currentUser, IWebHostEnvironment env)
+    private const string FileCategory = "reports";
+
+    public ReportService(AppDbContext context, ICurrentUserService currentUser, IFileStorage files)
     {
         _context = context;
         _currentUser = currentUser;
-        _env = env;
+        _files = files;
     }
 
     public async Task<IEnumerable<ReportResponseDto>> GetReportsAsync(int internshipId)
@@ -28,14 +31,32 @@ public class ReportService : IReportService
         var userId = _currentUser.UserId;
         var role = _currentUser.Role;
 
+        // ถ้าไม่ส่ง internshipId (= 0) ให้ auto-resolve จาก active internship ของ user ปัจจุบัน
+        if (internshipId == 0)
+        {
+            if (role == Constants.Roles.Student)
+            {
+                var activeInternship = await _context.Internships
+                    .FirstOrDefaultAsync(i => i.StudentID == userId && i.Status == "active");
+                if (activeInternship == null)
+                    return Enumerable.Empty<ReportResponseDto>(); // ยังไม่มี internship ก็คืน list ว่าง
+                internshipId = activeInternship.InternshipID;
+            }
+            else
+            {
+                // advisor/admin ต้องระบุ internshipId
+                return Enumerable.Empty<ReportResponseDto>();
+            }
+        }
+
         var internship = await _context.Internships.FirstOrDefaultAsync(i => i.InternshipID == internshipId);
         if (internship == null)
             throw AppException.NotFound("ไม่พบข้อมูลการฝึกงานนี้");
 
-        if (role == "student" && internship.StudentID != userId)
+        if (role == Constants.Roles.Student && internship.StudentID != userId)
             throw AppException.Forbidden("คุณไม่มีสิทธิ์เข้าถึงข้อมูลนี้");
             
-        if (role == "advisor" && internship.AdvisorID != userId)
+        if (role == Constants.Roles.Advisor && internship.AdvisorID != userId)
             throw AppException.Forbidden("คุณไม่มีสิทธิ์เข้าถึงข้อมูลนี้");
 
         var reports = await _context.Reports
@@ -67,7 +88,7 @@ public class ReportService : IReportService
         var userId = _currentUser.UserId;
         var role = _currentUser.Role;
 
-        if (role != "student")
+        if (role != Constants.Roles.Student)
             throw AppException.Forbidden("เฉพาะนักศึกษาเท่านั้นที่สามารถสร้างรายงานได้");
 
         var internship = await _context.Internships.FirstOrDefaultAsync(i => i.InternshipID == request.InternshipID);
@@ -90,7 +111,7 @@ public class ReportService : IReportService
             StartDate = request.StartDate,
             EndDate = request.EndDate,
             Status = "draft",
-            CreatedAt = DateTime.Now
+            CreatedAt = AppClock.Now
         };
 
         _context.Reports.Add(report);
@@ -154,7 +175,7 @@ public class ReportService : IReportService
         return MapToDto(report);
     }
 
-    public async Task<string> ExportPdfAsync(int reportId)
+    public async Task<StoredFile> ExportPdfAsync(int reportId)
     {
         var report = await _context.Reports
             .Include(r => r.Student)
@@ -166,18 +187,8 @@ public class ReportService : IReportService
 
         ValidateAccess(report.Internship);
         
-        // ถ้าเคยออก PDF ไปแล้ว และไม่อยากให้ออกใหม่บ่อยๆ อาจจะคืนค่า FilePath เดิม
-        // แต่ในที่นี้จะให้ Generate ทับไปเลย
-
-        var folderPath = Path.Combine(_env.WebRootPath, "uploads", "reports");
-        if (!Directory.Exists(folderPath))
-            Directory.CreateDirectory(folderPath);
-
-        var fileName = $"Report_{report.ReportID}_{DateTime.Now.Ticks}.pdf";
-        var fullPath = Path.Combine(folderPath, fileName);
-
-        // วาดหน้าตา PDF เบื้องต้นด้วย QuestPDF
-        Document.Create(container =>
+        // สร้าง PDF ใหม่ทุกครั้งเพื่อให้ตรงกับข้อมูลล่าสุด (เช่น หมายเหตุจากอาจารย์)
+        var pdf = Document.Create(container =>
         {
             container.Page(page =>
             {
@@ -216,14 +227,17 @@ public class ReportService : IReportService
                     });
             });
         })
-        .GeneratePdf(fullPath);
+        .GeneratePdf();
 
-        var fileUrl = $"/uploads/reports/{fileName}";
-        
-        report.FilePath = fileUrl;
+        var previousPath = report.FilePath;
+        var storedPath = await _files.SaveGeneratedAsync(pdf, FileCategory, ".pdf");
+
+        report.FilePath = storedPath;
         await _context.SaveChangesAsync();
+        _files.Delete(previousPath);
 
-        return fileUrl;
+        return _files.Open(storedPath, $"report-{report.ReportID}.pdf")
+            ?? throw AppException.NotFound("ไม่พบไฟล์ PDF");
     }
 
     private void ValidateAccess(Internship internship)
@@ -231,10 +245,10 @@ public class ReportService : IReportService
         var userId = _currentUser.UserId;
         var role = _currentUser.Role;
 
-        if (role == "student" && internship.StudentID != userId)
+        if (role == Constants.Roles.Student && internship.StudentID != userId)
             throw AppException.Forbidden("คุณไม่มีสิทธิ์เข้าถึงข้อมูลนี้");
 
-        if (role == "advisor" && internship.AdvisorID != userId)
+        if (role == Constants.Roles.Advisor && internship.AdvisorID != userId)
             throw AppException.Forbidden("คุณไม่มีสิทธิ์เข้าถึงข้อมูลนี้");
     }
 
@@ -250,7 +264,8 @@ public class ReportService : IReportService
             report.EndDate,
             report.Status,
             report.ReviewNote,
-            report.FilePath,
+            // URL ของ endpoint ดาวน์โหลด (ตรวจสิทธิ์) แทน path จริงของไฟล์
+            report.FilePath != null ? $"/api/reports/{report.ReportID}/export-pdf" : null,
             report.CreatedAt
         );
     }

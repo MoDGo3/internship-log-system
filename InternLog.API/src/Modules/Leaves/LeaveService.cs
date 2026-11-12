@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Hosting;
 using InternLog.API.Modules.Leaves.DTOs;
 using InternLog.API.Core.Interfaces;
 using InternLog.API.Core.Common;
+using InternLog.API.Core.Storage;
 using InternLog.API.Infrastructure.Data;
 using InternLog.API.Infrastructure.Data.Models;
 
@@ -11,15 +11,17 @@ namespace InternLog.API.Modules.Leaves;
 
 public class LeaveService : ILeaveService
 {
+    private const string FileCategory = "leaves";
+
     private readonly AppDbContext _context;
     private readonly ICurrentUserService _currentUser;
-    private readonly IWebHostEnvironment _env;
+    private readonly IFileStorage _files;
 
-    public LeaveService(AppDbContext context, ICurrentUserService currentUser, IWebHostEnvironment env)
+    public LeaveService(AppDbContext context, ICurrentUserService currentUser, IFileStorage files)
     {
         _context = context;
         _currentUser = currentUser;
-        _env = env;
+        _files = files;
     }
 
     private static int CalculateWeekdays(DateOnly startDate, DateOnly endDate)
@@ -86,7 +88,7 @@ public class LeaveService : ILeaveService
             .Include(l => l.LeaveType)
             .Include(l => l.Internship)
             .Where(l => l.Status == "pending" &&
-                (_currentUser.Role == "admin" || l.Internship.AdvisorID == _currentUser.UserId))
+                (_currentUser.Role == Constants.Roles.Admin || l.Internship.AdvisorID == _currentUser.UserId))
             .OrderBy(l => l.CreatedAt)
             .ToListAsync();
 
@@ -101,7 +103,7 @@ public class LeaveService : ILeaveService
             throw AppException.BadRequest("วันที่สิ้นสุดต้องไม่ก่อนวันที่เริ่มต้น");
 
         // เปรียบเทียบ DateOnly กับ DateOnly เพื่ออนุญาตให้ลาวันนี้ได้
-        var today = DateOnly.FromDateTime(DateTime.Now);
+        var today = AppClock.Today;
         if (request.StartDate < today)
             throw AppException.BadRequest("ไม่สามารถขอลาย้อนหลังได้");
 
@@ -130,23 +132,10 @@ public class LeaveService : ILeaveService
         if (usedAndPending + dayCount > leaveType.MaxDays)
             throw AppException.BadRequest($"สิทธิ์การ{leaveType.TypeName}ของคุณเหลือไม่พอ (เหลือ {leaveType.MaxDays - usedAndPending} วัน)");
 
-        // Handle File Upload
+        // ไฟล์แนบ (ถ้ามี) — ตรวจขนาด/นามสกุล/magic bytes แล้วเก็บนอก wwwroot
         string? attachmentPath = null;
         if (attachment != null && attachment.Length > 0)
-        {
-            var uploadsFolder = Path.Combine(_env.WebRootPath, "uploads", "leaves");
-            if (!Directory.Exists(uploadsFolder))
-                Directory.CreateDirectory(uploadsFolder);
-
-            var uniqueFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(attachment.FileName);
-            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-            using (var fileStream = new FileStream(filePath, FileMode.Create))
-            {
-                await attachment.CopyToAsync(fileStream);
-            }
-            attachmentPath = $"/uploads/leaves/{uniqueFileName}";
-        }
+            attachmentPath = await _files.SaveUploadAsync(attachment, FileCategory, Constants.FileUpload.MaxFileSizeBytes);
 
         var leave = new Leave
         {
@@ -159,11 +148,19 @@ public class LeaveService : ILeaveService
             Reason = request.Reason,
             AttachmentPath = attachmentPath,
             Status = "pending",
-            CreatedAt = DateTime.Now
+            CreatedAt = AppClock.Now
         };
 
         _context.Leaves.Add(leave);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch
+        {
+            _files.Delete(attachmentPath); // ไม่ทิ้งไฟล์กำพร้าถ้าบันทึก DB ไม่สำเร็จ
+            throw;
+        }
 
         leave.Student = await _context.Users.FirstAsync(u => u.UserID == studentId);
         leave.LeaveType = leaveType;
@@ -185,7 +182,7 @@ public class LeaveService : ILeaveService
         if (leave.Status != "pending")
             throw AppException.BadRequest($"ไม่สามารถรีวิวได้ เนื่องจากสถานะปัจจุบันคือ {leave.Status}");
 
-        if (_currentUser.Role != "admin" && leave.Internship.AdvisorID != _currentUser.UserId)
+        if (_currentUser.Role != Constants.Roles.Admin && leave.Internship.AdvisorID != _currentUser.UserId)
             throw AppException.Forbidden("คุณไม่มีสิทธิ์รีวิวใบลาของนักศึกษาคนนี้");
 
         leave.Status = reviewDto.IsApproved ? "approved" : "rejected";
@@ -194,6 +191,27 @@ public class LeaveService : ILeaveService
         await _context.SaveChangesAsync();
 
         return MapToDto(leave);
+    }
+
+    public async Task<StoredFile> GetAttachmentAsync(int leaveId)
+    {
+        var leave = await _context.Leaves
+            .Include(l => l.Internship)
+            .FirstOrDefaultAsync(l => l.LeaveID == leaveId)
+            ?? throw AppException.NotFound("ไม่พบข้อมูลการลา");
+
+        var canAccess = _currentUser.Role switch
+        {
+            Constants.Roles.Admin   => true,
+            Constants.Roles.Advisor => leave.Internship.AdvisorID == _currentUser.UserId,
+            Constants.Roles.Student => leave.StudentID == _currentUser.UserId,
+            _                       => false
+        };
+        if (!canAccess)
+            throw AppException.Forbidden("คุณไม่มีสิทธิ์เข้าถึงไฟล์แนบนี้");
+
+        return _files.Open(leave.AttachmentPath, $"leave-{leave.LeaveID}{Path.GetExtension(leave.AttachmentPath)}")
+            ?? throw AppException.NotFound("ไม่พบไฟล์แนบ");
     }
 
     private static LeaveResponseDto MapToDto(Leave leave)
@@ -208,7 +226,8 @@ public class LeaveService : ILeaveService
             leave.EndDate,
             leave.DayCount,
             leave.Reason,
-            leave.AttachmentPath,
+            // ส่ง URL ของ endpoint ดาวน์โหลด (ตรวจสิทธิ์) แทน path จริงของไฟล์
+            leave.AttachmentPath != null ? $"/api/leaves/{leave.LeaveID}/attachment" : null,
             leave.Status,
             leave.ReviewNote,
             leave.CreatedAt

@@ -1,3 +1,4 @@
+using InternLog.API.Core.Common;
 // ===================================================
 // Entity Models — ตรงกับ ERD 20 ตาราง (ห้ามเปลี่ยนชื่อ)
 // Namespace: InternLog.API.Infrastructure.Data.Models
@@ -29,7 +30,7 @@ public class User
     public string? Phone { get; set; }
     public string? ProfileImage { get; set; }
     public bool IsActive { get; set; } = true;
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; } = AppClock.Now;
 
     // Navigation
     public Role Role { get; set; } = null!;
@@ -48,7 +49,7 @@ public class Company
     public string? Phone { get; set; }
     public TimeOnly WorkStartTime { get; set; } = new TimeOnly(9, 0);  // 09:00 default
     public TimeOnly WorkEndTime { get; set; } = new TimeOnly(18, 0);   // 18:00 default
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; } = AppClock.Now;
 
     // Navigation
     public ICollection<Internship> Internships { get; set; } = [];
@@ -106,7 +107,7 @@ public class Attendance
     public decimal? TotalHours { get; set; }
     public string Status { get; set; } = "ontime"; // ontime|late|leave|absent|pending_edit
     public string? Note { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; } = AppClock.Now;
 
     // Navigation
     public User Student { get; set; } = null!;
@@ -137,7 +138,7 @@ public class Leave
     public string? AttachmentPath { get; set; }
     public string Status { get; set; } = "pending"; // pending|approved|rejected
     public string? ReviewNote { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; } = AppClock.Now;
 
     // Navigation
     public User Student { get; set; } = null!;
@@ -167,7 +168,7 @@ public class WorkLog
     public string? Detail { get; set; }
     public string? Problem { get; set; }
     public string? Solution { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; } = AppClock.Now;
     public DateTime? UpdatedAt { get; set; }
 
     // Navigation
@@ -185,7 +186,7 @@ public class Attachment
     public string FileName { get; set; } = string.Empty;
     public string FilePath { get; set; } = string.Empty;
     public long FileSize { get; set; }
-    public DateTime UploadedAt { get; set; } = DateTime.Now;
+    public DateTime UploadedAt { get; set; } = AppClock.Now;
 
     // Navigation
     public WorkLog WorkLog { get; set; } = null!;
@@ -198,7 +199,7 @@ public class LogComment
     public int LogID { get; set; }
     public int UserID { get; set; }
     public string Comment { get; set; } = string.Empty;
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; } = AppClock.Now;
 
     // Navigation
     public WorkLog WorkLog { get; set; } = null!;
@@ -216,7 +217,7 @@ public class TaskItem
     public DateOnly? DueDate { get; set; }
     public string Priority { get; set; } = "medium"; // low|medium|high
     public string Status { get; set; } = "todo";     // todo|doing|done
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; } = AppClock.Now;
 
     // Navigation
     public Internship Internship { get; set; } = null!;
@@ -235,7 +236,7 @@ public class AdvisorVisit
     public string VisitType { get; set; } = "Onsite"; // Onsite|Online
     public string? Summary { get; set; }
     public int? Score { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; } = AppClock.Now;
 
     // Navigation
     public Internship Internship { get; set; } = null!;
@@ -252,7 +253,7 @@ public class Notification
     public string Message { get; set; } = string.Empty;
     public string? Link { get; set; }
     public bool IsRead { get; set; } = false;
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; } = AppClock.Now;
 
     // Navigation
     public User User { get; set; } = null!;
@@ -270,7 +271,7 @@ public class Report
     public string Status { get; set; } = "draft"; // draft|submitted|approved|returned
     public string? ReviewNote { get; set; }
     public string? FilePath { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; } = AppClock.Now;
 
     // Navigation
     public User Student { get; set; } = null!;
@@ -287,7 +288,7 @@ public class Evaluation
     public decimal? TotalScore { get; set; }
     public string? Grade { get; set; }          // A|B|C|D|F
     public string? Comment { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; } = AppClock.Now;
 
     // Navigation
     public Internship Internship { get; set; } = null!;
@@ -302,7 +303,7 @@ public class RefreshToken
     public DateTime ExpiresAt { get; set; }
     public DateTime? RevokedAt { get; set; }
     public int? ReplacedByTokenID { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation
     public User User { get; set; } = null!;
@@ -319,7 +320,7 @@ public class PasswordResetToken
     public string TokenHash { get; set; } = string.Empty;  // เก็บ hash เท่านั้น
     public DateTime ExpiresAt { get; set; }
     public bool IsUsed { get; set; } = false;
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation
     public User User { get; set; } = null!;

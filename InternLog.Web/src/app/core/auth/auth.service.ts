@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap, of } from 'rxjs';
+import { Observable, tap, of, map, catchError, finalize, share } from 'rxjs';
 import { AuthResponse, User, ApiResponse } from '../../models/user.model';
 import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
@@ -11,18 +11,25 @@ import { environment } from '../../../environments/environment';
 export class AuthService {
   private readonly API_URL = `${environment.apiUrl}/auth`;
   private readonly TOKEN_KEY = 'accessToken';
-  private readonly REFRESH_TOKEN_KEY = 'refreshToken';
   private readonly USER_INFO_KEY = 'currentUser';
+  /** key เก่าที่เคยเก็บ refresh token — ลบทิ้งเมื่อเจอ (ปัจจุบันใช้ httpOnly cookie) */
+  private readonly LEGACY_REFRESH_TOKEN_KEY = 'refreshToken';
+  /** ให้ browser ส่ง/รับ refresh token cookie กับ endpoint /auth */
+  private readonly withCookie = { withCredentials: true };
 
   // Using Angular 16+ signals for reactive state
   public currentUser = signal<User | null>(null);
   public isAuthenticated = signal<boolean>(false);
+
+  /** refresh ที่กำลังทำอยู่ — ใช้ร่วมกันทุกผู้เรียก (refresh token หมุนทุกครั้ง ยิงซ้ำพร้อมกันจะล้มเหลว) */
+  private refreshInFlight$: Observable<ApiResponse<AuthResponse>> | null = null;
 
   constructor(private http: HttpClient, private router: Router) {
     this.checkInitialAuthState();
   }
 
   private checkInitialAuthState() {
+    localStorage.removeItem(this.LEGACY_REFRESH_TOKEN_KEY);
     const token = this.getAccessToken();
     if (token && !this.isTokenExpired(token)) {
       // Token มีอยู่และยังไม่หมดอายุ จึงถือว่า session ยังใช้ได้
@@ -33,9 +40,8 @@ export class AuthService {
       }
     } else if (token) {
       // Token หมดอายุแล้ว ลบทิ้งเพื่อป้องกัน 401 cascade
-      // (ระบบจะพยายาม refresh เองผ่าน interceptor หรือให้ user login ใหม่)
+      // authGuard จะลอง refresh ด้วย cookie ก่อน ถ้าไม่สำเร็จจึงพาไปหน้า login
       localStorage.removeItem(this.TOKEN_KEY);
-      // ยังคง refreshToken ไว้เพื่อให้ interceptor ลองขอ token ใหม่
       this.isAuthenticated.set(false);
     }
   }
@@ -54,7 +60,7 @@ export class AuthService {
   }
 
   login(credentials: any): Observable<ApiResponse<AuthResponse>> {
-    return this.http.post<ApiResponse<AuthResponse>>(`${this.API_URL}/login`, credentials).pipe(
+    return this.http.post<ApiResponse<AuthResponse>>(`${this.API_URL}/login`, credentials, this.withCookie).pipe(
       tap(res => this.handleAuthResponse(res))
     );
   }
@@ -68,38 +74,46 @@ export class AuthService {
   }
 
   logout() {
-    const refreshToken = this.getRefreshToken();
-    
-    // Call backend to revoke refresh token if needed
-    if (refreshToken) {
-      this.http.post(`${this.API_URL}/logout`, { refreshToken }).subscribe({
-        next: () => this.clearSession(),
-        error: () => this.clearSession()
-      });
-    } else {
-      this.clearSession();
-    }
+    // ให้ backend revoke refresh token และลบ cookie
+    this.http.post(`${this.API_URL}/logout`, {}, this.withCookie).subscribe({
+      next: () => this.clearSession(),
+      error: () => this.clearSession()
+    });
   }
 
   private clearSession() {
     localStorage.removeItem(this.TOKEN_KEY);
-    localStorage.removeItem(this.REFRESH_TOKEN_KEY);
+    localStorage.removeItem(this.LEGACY_REFRESH_TOKEN_KEY);
     localStorage.removeItem(this.USER_INFO_KEY);
     this.isAuthenticated.set(false);
     this.currentUser.set(null);
     this.router.navigate(['/login']);
   }
 
+  /** ขอ access token ใหม่ด้วย refresh token ใน cookie — error (401) ถ้า cookie ไม่มีหรือหมดอายุ */
   refreshTokens(): Observable<ApiResponse<AuthResponse>> {
-    const refreshToken = this.getRefreshToken();
-    if (!refreshToken) {
-      this.clearSession();
-      return of({} as ApiResponse<AuthResponse>); // Throw error in real scenario
+    if (!this.refreshInFlight$) {
+      this.refreshInFlight$ = this.http.post<ApiResponse<AuthResponse>>(`${this.API_URL}/refresh`, {}, this.withCookie).pipe(
+        tap(res => this.handleAuthResponse(res)),
+        finalize(() => (this.refreshInFlight$ = null)),
+        share()
+      );
     }
+    return this.refreshInFlight$;
+  }
 
-    return this.http.post<ApiResponse<AuthResponse>>(`${this.API_URL}/refresh`, { refreshToken }).pipe(
-      tap(res => this.handleAuthResponse(res))
+  /** true ถ้ามี session ที่ใช้ได้ — ถ้าไม่มี access token จะลอง refresh ด้วย cookie ก่อน (ใช้ใน guard) */
+  ensureSession(): Observable<boolean> {
+    if (this.isAuthenticated()) return of(true);
+    return this.refreshTokens().pipe(
+      map(res => res.success),
+      catchError(() => of(false))
     );
+  }
+
+  /** ตั้งรหัสผ่านใหม่ด้วย token จากลิงก์ในอีเมล */
+  resetPassword(token: string, newPassword: string): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(`${this.API_URL}/reset-password`, { token, newPassword });
   }
 
   getMe(): Observable<ApiResponse<User>> {
@@ -120,7 +134,6 @@ export class AuthService {
   private handleAuthResponse(res: ApiResponse<AuthResponse>) {
     if (res.success && res.data) {
       localStorage.setItem(this.TOKEN_KEY, res.data.accessToken);
-      localStorage.setItem(this.REFRESH_TOKEN_KEY, res.data.refreshToken);
       localStorage.setItem(this.USER_INFO_KEY, JSON.stringify(res.data.user));
 
       this.currentUser.set(res.data.user);
@@ -130,10 +143,6 @@ export class AuthService {
 
   getAccessToken(): string | null {
     return localStorage.getItem(this.TOKEN_KEY);
-  }
-
-  getRefreshToken(): string | null {
-    return localStorage.getItem(this.REFRESH_TOKEN_KEY);
   }
 
   hasRole(allowedRoles: string[]): boolean {

@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { LeavesService } from '../../../core/services/leaves.service';
+import { FileDownloadService } from '../../../core/services/file-download.service';
 import { LeaveResponseDto, LeaveQuotaDto } from '../../../models/leave.model';
 import { AuthService } from '../../../core/auth/auth.service';
 import { format } from 'date-fns';
@@ -23,7 +24,8 @@ export class LeavesPageComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private leavesService: LeavesService,
-    private authService: AuthService
+    private authService: AuthService,
+    private fileDownload: FileDownloadService
   ) {
     this.leaveForm = this.fb.group({
       leaveTypeID: ['', Validators.required],
@@ -112,6 +114,12 @@ export class LeavesPageComponent implements OnInit {
       case 'rejected': return 'badge-danger';
       default: return 'badge-secondary';
     }
+  }
+
+  openAttachment(url: string) {
+    this.fileDownload.open(url).subscribe({
+      error: () => alert('ไม่สามารถเปิดไฟล์แนบได้')
+    });
   }
 
   getStatusText(status: string): string {

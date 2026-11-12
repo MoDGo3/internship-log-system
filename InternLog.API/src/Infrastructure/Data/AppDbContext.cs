@@ -397,12 +397,14 @@ public class AppDbContext : DbContext
         );
 
         // Admin user (1 คน) — BCrypt hash ของ "Admin@1234!"
+        // ต้องเป็นค่าคงที่: ถ้าเรียก HashPassword() ตรงนี้ hash จะเปลี่ยนทุกครั้งที่สร้าง model
+        // ทำให้ `dotnet ef migrations add` สร้าง UpdateData ที่ไม่ต้องการทุกครั้ง (ค่านี้ตรงกับ model snapshot ล่าสุด)
         mb.Entity<User>().HasData(new User
         {
             UserID       = 1,
             RoleID       = 4, // admin
             Email        = "admin@internlog.dev",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@1234!"),
+            PasswordHash = "$2a$11$g1ogqNx9nv7.mhSU0mPhyOfrhqoJn2Y1Nd7IiZCVa0/JdE../UQPW",
             FirstName    = "System",
             LastName     = "Admin",
             IsActive     = true,

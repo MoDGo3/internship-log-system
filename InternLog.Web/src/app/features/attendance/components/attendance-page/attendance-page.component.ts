@@ -20,6 +20,7 @@ export class AttendancePageComponent implements OnInit, OnDestroy {
   currentDate = '';
   private timer: any;
   isCheckedIn = false;
+  isCompletedToday = false;
   
   stats: AttendanceSummary = {
     totalDays: 0,
@@ -85,10 +86,21 @@ export class AttendancePageComponent implements OnInit, OnDestroy {
           // Check today's status
           const todayStr = format(new Date(), 'yyyy-MM-dd');
           const todayRecord = this.history.find(r => r.attDate === todayStr);
-          if (todayRecord && todayRecord.checkInTime && !todayRecord.checkOutTime) {
-            this.isCheckedIn = true;
+          
+          if (todayRecord) {
+            if (todayRecord.checkInTime && !todayRecord.checkOutTime) {
+              this.isCheckedIn = true;
+              this.isCompletedToday = false;
+            } else if (todayRecord.checkInTime && todayRecord.checkOutTime) {
+              this.isCheckedIn = false;
+              this.isCompletedToday = true;
+            } else {
+              this.isCheckedIn = false;
+              this.isCompletedToday = false;
+            }
           } else {
             this.isCheckedIn = false;
+            this.isCompletedToday = false;
           }
         }
       },
@@ -112,7 +124,7 @@ export class AttendancePageComponent implements OnInit, OnDestroy {
           this.loadHistory();
         }
       },
-      error: (err) => alert('เกิดข้อผิดพลาด: ' + err.message)
+      error: (err) => alert('เกิดข้อผิดพลาด: ' + (err.error?.message || err.message))
     });
   }
 
@@ -126,7 +138,7 @@ export class AttendancePageComponent implements OnInit, OnDestroy {
           this.loadHistory();
         }
       },
-      error: (err) => alert('เกิดข้อผิดพลาด: ' + err.message)
+      error: (err) => alert('เกิดข้อผิดพลาด: ' + (err.error?.message || err.message))
     });
   }
 
@@ -140,7 +152,7 @@ export class AttendancePageComponent implements OnInit, OnDestroy {
             this.loadHistory();
           }
         },
-        error: (err) => alert('เกิดข้อผิดพลาด: ' + err.message)
+        error: (err) => alert('เกิดข้อผิดพลาด: ' + (err.error?.message || err.message))
       });
     }
   }

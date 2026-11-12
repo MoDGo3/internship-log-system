@@ -49,6 +49,14 @@ public class LeavesController : ControllerBase
         return CreatedAtAction(nameof(GetStudentLeaves), null, ApiResponse<LeaveResponseDto>.Ok(result, "ยื่นคำขอลาเรียบร้อยแล้ว"));
     }
 
+    [HttpGet("{id}/attachment")]
+    [Authorize(Roles = "student,advisor,admin")]
+    public async Task<IActionResult> GetAttachment(int id)
+    {
+        var file = await _leaveService.GetAttachmentAsync(id);
+        return File(file.Content, file.ContentType, file.DownloadName);
+    }
+
     [HttpPut("{id}/review")]
     [Authorize(Roles = "advisor,admin")]
     public async Task<IActionResult> ReviewLeave(int id, [FromBody] ReviewLeaveDto request)

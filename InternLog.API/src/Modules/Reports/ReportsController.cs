@@ -52,7 +52,8 @@ public class ReportsController : ControllerBase
     [Authorize(Roles = "student,advisor")]
     public async Task<IActionResult> ExportPdf(int id)
     {
-        var fileUrl = await _reportService.ExportPdfAsync(id);
-        return Ok(ApiResponse<string>.Ok(fileUrl, "สร้างไฟล์ PDF เรียบร้อย"));
+        // สร้าง PDF ล่าสุดแล้วส่งไฟล์กลับโดยตรง (ไม่เปิด URL สาธารณะ)
+        var file = await _reportService.ExportPdfAsync(id);
+        return File(file.Content, file.ContentType, file.DownloadName);
     }
 }

@@ -31,14 +31,15 @@
         <span class="date-number">{{ day.date | date:'d' }}</span>
         
         <!-- Indicators -->
-        <div class="indicators" *ngIf="day.status !== 'none'">
-          <span class="status-dot" 
+        <div class="indicators" *ngIf="day.status !== 'none' || isMissingLog(day)">
+          <span class="status-dot" *ngIf="day.status !== 'none'"
                 [class.bg-success]="day.status === 'approved'"
                 [class.bg-warning]="day.status === 'pending'"
                 [class.bg-danger]="day.status === 'absent'"
                 [class.bg-leave]="day.status === 'leave'">
           </span>
           <span class="log-icon" *ngIf="day.hasLog">📋</span>
+          <span class="missing-log-icon" *ngIf="isMissingLog(day)" title="ยังไม่มีบันทึกงาน" style="color: #ef4444; font-weight: bold; font-size: 14px;">‼️</span>
         </div>
       </div>
     </div>
@@ -59,18 +60,17 @@
       <h4>การลงเวลา</h4>
       <div class="info-card" *ngIf="selectedDay.status !== 'none'; else noAttendance">
         <div class="info-row">
-          <span>เวลาเข้า:</span> <strong>08:45</strong>
-        </div>
-        <div class="info-row">
-          <span>เวลาออก:</span> <strong>17:30</strong>
-        </div>
-        <div class="info-row">
           <span>สถานะ:</span>
           <span class="badge" 
                 [class.badge-success]="selectedDay.status === 'approved'"
                 [class.badge-warning]="selectedDay.status === 'pending'"
+                [class.badge-danger]="selectedDay.status === 'absent'"
                 [class.badge-leave]="selectedDay.status === 'leave'">
-            {{ selectedDay.status }}
+            <ng-container *ngIf="selectedDay.status === 'approved'">เข้างานปกติ</ng-container>
+            <ng-container *ngIf="selectedDay.status === 'pending'">รอตรวจสอบ</ng-container>
+            <ng-container *ngIf="selectedDay.status === 'absent'">ขาดงาน</ng-container>
+            <ng-container *ngIf="selectedDay.status === 'leave'">ลา</ng-container>
+            <ng-container *ngIf="selectedDay.status === 'holiday'">วันหยุด</ng-container>
           </span>
         </div>
       </div>
@@ -88,10 +88,10 @@
         </button>
       </div>
       
-      <div class="work-log-card" *ngIf="selectedDay.hasLog; else noLogs">
-        <h5 class="log-title">งานที่ทำในวันนี้</h5>
-        <span class="chip">Development</span>
-        <p class="text-sm mt-2">รายละเอียดแบบย่อ...</p>
+      <div class="work-log-card" *ngIf="selectedDay.workLog; else noLogs">
+        <h5 class="log-title">{{ selectedDay.workLog.title }}</h5>
+        <span class="chip" *ngIf="selectedDay.workLog.categoryName">{{ selectedDay.workLog.categoryName }}</span>
+        <p class="text-sm mt-2">{{ selectedDay.workLog.description || selectedDay.workLog.detail }}</p>
       </div>
       <ng-template #noLogs>
         <p class="text-secondary text-sm">ไม่มีบันทึกงานในวันนี้</p>

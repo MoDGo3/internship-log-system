@@ -86,13 +86,14 @@ npm start
 [DEV] Reset link: http://localhost:4200/reset-password?token=...
 ```
 
-ลิงก์มีอายุ 1 ชั่วโมง (ดูข้อจำกัดใน [project-status.md](project-status.md) — หน้า reset-password ฝั่งเว็บยังไม่มี)
+เปิดลิงก์นั้นในเบราว์เซอร์จะเข้าหน้าตั้งรหัสผ่านใหม่ ลิงก์มีอายุ 1 ชั่วโมงและใช้ได้ครั้งเดียว
 
 ## 5. คำสั่งที่ใช้บ่อย
 
 | งาน | คำสั่ง (รันในโฟลเดอร์ที่ระบุ) |
 |---|---|
 | Build API | `InternLog.API> dotnet build` |
+| Test API (42 tests) | `> dotnet test` (ที่ root ของ repo ใช้ `InternLog.slnx`) |
 | สร้าง migration ใหม่ | `InternLog.API> dotnet ef migrations add <ชื่อ>` |
 | Apply migration ด้วยมือ | `InternLog.API> dotnet ef database update` |
 | Build เว็บ | `InternLog.Web> npm run build` |
@@ -105,5 +106,28 @@ npm start
 | API start ไม่ได้: `JWT Key ไม่ได้ตั้งค่า` | ยังไม่ได้ทำข้อ 1.2 |
 | `Migration/Seed error: A network-related ... error` | SQL Server ไม่ได้รัน หรือชื่อ instance ไม่ตรง → ข้อ 1.1 |
 | หน้าเว็บขึ้น CORS error | API ไม่ได้รันที่ `5005` หรือเว็บไม่ได้รันที่ `4200` |
-| Login แล้วเด้งกลับหน้า login | Access token หมดอายุและ refresh ไม่สำเร็จ ลองล้าง localStorage แล้ว login ใหม่ |
+| Login แล้วเด้งกลับหน้า login | refresh token cookie หมดอายุหรือถูก revoke → login ใหม่ · ถ้าเปิดเว็บกับ API คนละ host (เช่น `127.0.0.1` กับ `localhost`) cookie จะไม่ถูกส่ง ให้ใช้ `localhost` ทั้งคู่ |
+| รัน API ไม่ได้: `An Application Control policy has blocked this file` | Windows Smart App Control บล็อก DLL ที่เพิ่ง build — รันผ่าน Visual Studio หรือปิด Smart App Control สำหรับเครื่อง dev |
 | `npm install` ช้า/ล้มเหลวบนโฟลเดอร์ OneDrive | ย้ายโปรเจกต์ออกจาก OneDrive (เคยเกิดปัญหานี้ ดู progress-log 26 ส.ค.) |
+
+## 7. ไฟล์อัปโหลด
+
+ไฟล์แนบใบลา, ไฟล์แนบ Work Log และ PDF รายงาน เก็บที่ `InternLog.API/App_Data/uploads/` (อยู่ใน `.gitignore`)
+เปลี่ยนตำแหน่งได้ด้วย `FileStorage:Root` ใน appsettings/user-secrets · ไฟล์ดาวน์โหลดได้เฉพาะผ่าน API ที่ตรวจสิทธิ์ ไม่มี URL สาธารณะ
+
+## 8. ทดสอบหลังแก้ไข (12 พ.ย. 2569)
+
+`dotnet test` ครอบคลุม logic และ HTTP pipeline แล้ว แต่ควรทดสอบผ่านเบราว์เซอร์อีกรอบ:
+
+- [ ] Login ด้วย `student@test.com` → DevTools › Application › Cookies (`localhost:5005`) มี `refreshToken` แบบ HttpOnly และ localStorage **ไม่มี** `refreshToken`
+- [ ] ลบ `accessToken` ใน localStorage แล้วรีเฟรชหน้า → ยังอยู่ในระบบ (guard ต่ออายุด้วย cookie)
+- [ ] กรอกรหัสผิดที่หน้า login → ขึ้นข้อความผิดพลาด ไม่เด้ง/วน logout
+- [ ] Logout → รีเฟรชหน้า → ถูกพาไปหน้า login
+- [ ] สร้าง Work Log + แนบ PDF → เปิดหน้าแก้ไข คลิกชื่อไฟล์ → เปิดไฟล์ในแท็บใหม่ได้
+- [ ] ยื่นใบลาพร้อมไฟล์ (ผ่าน Swagger/`.http` เพราะฟอร์มยังไม่มีช่องแนบ) → หน้าใบลามีปุ่ม 📎 เปิดไฟล์ได้
+- [ ] หน้า `/reports/1/preview` → ปุ่มดาวน์โหลด PDF ได้ไฟล์ `report-1.pdf`
+- [ ] Login เป็น `advisor@test.com` และ `admin@test.com` → แดชบอร์ดแสดงตัวเลขสรุปของ role นั้น
+- [ ] ขอลิงก์รีเซ็ตรหัสผ่าน → เปิดลิงก์จาก console → ตั้งรหัสใหม่ → login ด้วยรหัสใหม่ได้
+- [ ] หน้า admin users แสดง role ของผู้ใช้ครบ
+- [ ] `dotnet ef migrations has-pending-model-changes` (ใน `InternLog.API`) ต้องตอบว่าไม่มีการเปลี่ยนแปลง
+

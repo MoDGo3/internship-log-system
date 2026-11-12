@@ -99,7 +99,11 @@
             <td>{{ item.startDate | date:'dd/MM/yyyy' }} <span *ngIf="item.endDate && item.startDate !== item.endDate"> - {{ item.endDate | date:'dd/MM/yyyy' }}</span></td>
             <td>{{ item.leaveTypeName }}</td>
             <td>{{ item.dayCount }}</td>
-            <td>{{ item.reason }}</td>
+            <td>
+              {{ item.reason }}
+              <button *ngIf="item.attachmentUrl" type="button" class="btn-icon" title="ดูไฟล์แนบ"
+                      (click)="openAttachment(item.attachmentUrl)">📎</button>
+            </td>
             <td>
               <span class="badge" [ngClass]="getStatusBadgeClass(item.status)">
                 {{ getStatusText(item.status) }}

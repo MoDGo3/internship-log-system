@@ -7,6 +7,7 @@
 
 - **Base URL:** `http://localhost:5005/api`
 - **Auth:** ส่ง `Authorization: Bearer <accessToken>` ทุก endpoint ยกเว้นที่ระบุว่า "สาธารณะ"
+- **Refresh token:** อยู่ใน cookie `refreshToken` (`HttpOnly; SameSite=Strict; Path=/api/auth`) — เรียก `/auth/*` จากเว็บต้องใช้ `withCredentials: true`
 - **Response:** `{ "success": bool, "message": string, "data": T | null }`
 - **Status code:** `400` ข้อมูลไม่ถูกต้อง · `401` ยังไม่ login/token หมดอายุ · `403` role หรือเจ้าของข้อมูลไม่ตรง · `404` ไม่พบ · `409` ข้อมูลซ้ำ
 - **ตัวย่อ role:** S = student · A = advisor · Ad = admin · ทุกคน = login แล้วทุก role
@@ -16,10 +17,10 @@
 
 | Method | Path | Role | คำอธิบาย |
 |---|---|---|---|
-| POST | `/auth/login` | สาธารณะ | เข้าสู่ระบบ → `accessToken`, `refreshToken`, `user` |
-| POST | `/auth/register` | สาธารณะ | สมัครสมาชิก (`role` ต้องเป็น `student`) → token คู่แรก, ตอบ `201` |
-| POST | `/auth/refresh` | สาธารณะ | body `{ refreshToken }` → token คู่ใหม่ (ตัวเก่าถูก revoke) |
-| POST | `/auth/logout` | สาธารณะ | body `{ refreshToken }` → revoke (เรียกซ้ำได้ ไม่ error) |
+| POST | `/auth/login` | สาธารณะ | เข้าสู่ระบบ → body `{ accessToken, user }` + cookie `refreshToken` |
+| POST | `/auth/register` | สาธารณะ | สมัครสมาชิก (`role` ต้องเป็น `student`) → เหมือน login, ตอบ `201` |
+| POST | `/auth/refresh` | สาธารณะ | body ว่าง ใช้ cookie `refreshToken` → `{ accessToken, user }` + cookie ใหม่ (ตัวเก่าถูก revoke) · ไม่มี cookie / ใช้ซ้ำ → `401` |
+| POST | `/auth/logout` | สาธารณะ | revoke refresh token จาก cookie + ลบ cookie (เรียกซ้ำได้ ไม่ error) |
 | GET | `/auth/me` | ทุกคน | ข้อมูลผู้ใช้ปัจจุบัน |
 | PUT | `/auth/me` | ทุกคน | แก้ชื่อ นามสกุล เบอร์โทร |
 | PUT | `/auth/change-password` | ทุกคน | `{ oldPassword, newPassword, confirmPassword }` → revoke refresh token ทั้งหมด |
@@ -44,7 +45,8 @@
 | GET | `/leaves/quota` | S | โควตาวันลาแต่ละประเภท (ใช้ไป/คงเหลือ) |
 | GET | `/leaves` | S | ใบลาของตัวเอง |
 | GET | `/leaves/pending` | A | ใบลารออนุมัติของนักศึกษาที่ดูแล |
-| POST | `/leaves` | S | ยื่นใบลา — `multipart/form-data` (`leaveTypeID`, `startDate`, `endDate`, `reason`, `attachment?`) · นับเฉพาะวันจันทร์–ศุกร์ และตรวจโควตา |
+| POST | `/leaves` | S | ยื่นใบลา — `multipart/form-data` (`leaveTypeID`, `startDate`, `endDate`, `reason`, `attachment?`) · นับเฉพาะวันจันทร์–ศุกร์ และตรวจโควตา · ไฟล์ ≤ 10 MB, `.pdf .jpg .jpeg .png .doc .docx`, ตรวจ magic bytes |
+| GET | `/leaves/{id}/attachment` | S, A, Ad | ดาวน์โหลดไฟล์แนบ (เจ้าของ / อาจารย์ที่ดูแล / admin) — `attachmentUrl` ใน response ของใบลาชี้มาที่นี่ |
 | PUT | `/leaves/{id}/review` | A, Ad | `{ isApproved, reviewNote? }` |
 
 ## Work Logs — `/api/worklogs`
@@ -59,7 +61,8 @@
 | PUT | `/worklogs/{id}` | S | แก้ไข (เฉพาะของตัวเอง) |
 | DELETE | `/worklogs/{id}` | S | ลบ (เฉพาะของตัวเอง) |
 | POST | `/worklogs/{id}/attachments` | S | อัปโหลดไฟล์ `multipart/form-data` field `file` · ≤ 5 MB · `.pdf .jpg .jpeg .png .doc .docx` · ตรวจ magic bytes |
-| DELETE | `/attachments/{id}` | S | ลบไฟล์แนบ (สังเกต: path ไม่มี `/worklogs` นำหน้า) |
+| GET | `/worklogs/attachments/{id}` | S, A, Ad | ดาวน์โหลดไฟล์แนบ (เจ้าของ / อาจารย์ที่ดูแล / admin) — `fileUrl` ใน response ชี้มาที่นี่ |
+| DELETE | `/attachments/{id}` | S | ลบไฟล์แนบและไฟล์จริง (สังเกต: path ไม่มี `/worklogs` นำหน้า) |
 | POST | `/worklogs/{id}/comments` | A, Ad | คอมเมนต์บันทึกงาน |
 
 ## Tasks — `/api/tasks`
@@ -90,7 +93,7 @@
 | POST | `/reports/generate` | S | สร้างรายงานตามช่วงวันที่ |
 | PUT | `/reports/{id}/submit` | S | ส่งให้อาจารย์ |
 | PUT | `/reports/{id}/review` | A | `{ status: "approved" \| "returned", reviewNote? }` |
-| GET | `/reports/{id}/export-pdf` | S, A | สร้าง PDF แล้วคืน URL ของไฟล์ (`/uploads/reports/...`) |
+| GET | `/reports/{id}/export-pdf` | S, A | สร้าง PDF ล่าสุดแล้วส่งไฟล์กลับโดยตรง (`application/pdf`) |
 
 ## Evaluations — `/api/evaluations`
 
@@ -112,7 +115,7 @@
 
 | Method | Path | Role | คำอธิบาย |
 |---|---|---|---|
-| GET | `/dashboard` | ทุกคน | ตัวเลขสรุป — เนื้อหาต่างกันตาม role (student / advisor / admin) |
+| GET | `/dashboard` | ทุกคน | ตัวเลขสรุปตาม role — student: ของตัวเอง · advisor: นักศึกษาที่ดูแล (รวมใบลา/รายงานรอตรวจ) · admin: ทั้งระบบ |
 | GET | `/dashboard/calendar?year=&month=` | ทุกคน | ข้อมูลปฏิทินรายวัน (ปัจจุบันคืนข้อมูลเฉพาะ student; role อื่นได้รายการว่าง) |
 
 ## Companies — `/api/companies`
@@ -138,12 +141,7 @@
 | GET | `/admin/internships` | รายการ internship ทั้งหมด |
 | POST | `/admin/internships` | จับคู่นักศึกษา–อาจารย์–บริษัท–ภาคเรียน |
 
-## Static files
+## ไฟล์
 
-| Path | ที่มา |
-|---|---|
-| `/uploads/leaves/*` | ไฟล์แนบใบลา |
-| `/uploads/worklogs/*` | ไฟล์แนบ Work Log |
-| `/uploads/reports/*` | PDF รายงาน |
-
-> ⚠️ path เหล่านี้เปิดให้โหลดได้โดยไม่ต้อง login — ดู [project-status.md](project-status.md)
+ไม่มีการเสิร์ฟไฟล์แบบ static (`/uploads/...` ตอบ `404`) — ไฟล์ทุกชนิดดาวน์โหลดผ่าน endpoint ที่ตรวจสิทธิ์ข้างบน
+response ส่ง header `Content-Disposition` (CORS เปิดให้เว็บอ่านได้) เพื่อใช้ตั้งชื่อไฟล์

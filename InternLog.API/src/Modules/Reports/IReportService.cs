@@ -1,3 +1,4 @@
+using InternLog.API.Core.Storage;
 using InternLog.API.Modules.Reports.DTOs;
 
 namespace InternLog.API.Modules.Reports;
@@ -9,5 +10,5 @@ public interface IReportService
     Task<ReportResponseDto> GenerateReportAsync(ReportGenerateRequestDto request);
     Task<ReportResponseDto> SubmitReportAsync(int reportId);
     Task<ReportResponseDto> ReviewReportAsync(int reportId, ReportReviewRequestDto request);
-    Task<string> ExportPdfAsync(int reportId);
+    Task<StoredFile> ExportPdfAsync(int reportId);
 }

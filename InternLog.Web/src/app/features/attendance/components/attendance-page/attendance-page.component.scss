@@ -12,17 +12,17 @@
   padding: 48px;
   background: linear-gradient(180deg, #FFFFFF 0%, #F5F6FA 100%);
   border: 1px solid #E5E7EB;
-  
+
   .clock-display {
     display: flex;
     align-items: center;
     gap: 16px;
     margin-bottom: 8px;
-    
+
     .icon {
       font-size: 48px;
     }
-    
+
     .time {
       font-size: 64px;
       font-family: var(--font-heading);
@@ -30,17 +30,17 @@
       color: var(--primary);
     }
   }
-  
+
   .date-display {
     font-size: 18px;
     color: var(--text-secondary);
     margin-bottom: 40px;
   }
-  
+
   .action-buttons {
     display: flex;
     gap: 24px;
-    
+
     .btn-large {
       width: 200px;
       height: 64px;
@@ -55,28 +55,29 @@
       gap: 12px;
       transition: all 0.2s ease;
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      
+
       &:hover:not(:disabled) {
         transform: translateY(-2px);
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
       }
-      
+
       &:disabled {
         opacity: 0.5;
         cursor: not-allowed;
         box-shadow: none;
       }
     }
-    
+
     .btn-check-in {
       background-color: var(--primary);
-      color: white;
+      border: 1px solid #E5E7EB;
     }
-    
+
     .btn-check-out {
       background-color: var(--surface);
       color: var(--text);
       border: 1px solid #E5E7EB;
+
     }
   }
 }
@@ -88,26 +89,31 @@
 
   .stat-card {
     padding: var(--spacing-lg);
-    
+
     h3 {
       font-size: 14px;
       color: var(--text-secondary);
       font-weight: 500;
       margin-bottom: 8px;
     }
-    
+
     .stat-value {
       font-size: 32px;
       font-weight: 700;
       color: var(--text);
-      
+
       .unit {
         font-size: 14px;
         font-weight: normal;
       }
-      
-      &.text-danger { color: var(--danger); }
-      &.text-secondary { color: var(--text-secondary); }
+
+      &.text-danger {
+        color: var(--danger);
+      }
+
+      &.text-secondary {
+        color: var(--text-secondary);
+      }
     }
   }
 }
@@ -117,18 +123,18 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: var(--spacing-md);
-  
+
   h3 {
     margin: 0;
   }
-  
+
   .form-select {
     padding: 8px 12px;
     border: 1px solid #E5E7EB;
     border-radius: var(--radius-input);
     font-family: inherit;
     outline: none;
-    
+
     &:focus {
       border-color: var(--primary);
     }
@@ -138,22 +144,24 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  
-  th, td {
+
+  th,
+  td {
     padding: 12px 16px;
     text-align: left;
     border-bottom: 1px solid #E5E7EB;
     font-size: 14px;
   }
-  
+
   th {
     background-color: #F9FAFB;
     color: var(--text-secondary);
     font-weight: 500;
   }
-  
+
   tbody tr {
     transition: background-color 0.2s;
+
     &:hover {
       background-color: #F9FAFB;
     }
@@ -165,11 +173,26 @@
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
-  
-  &.badge-success { background-color: #DCFCE7; color: var(--success); }
-  &.badge-danger { background-color: #FEE2E2; color: var(--danger); }
-  &.badge-leave { background-color: #F3E8FF; color: var(--leave); }
-  &.badge-secondary { background-color: #F3F4F6; color: var(--text-secondary); }
+
+  &.badge-success {
+    background-color: #DCFCE7;
+    color: var(--success);
+  }
+
+  &.badge-danger {
+    background-color: #FEE2E2;
+    color: var(--danger);
+  }
+
+  &.badge-leave {
+    background-color: #F3E8FF;
+    color: var(--leave);
+  }
+
+  &.badge-secondary {
+    background-color: #F3F4F6;
+    color: var(--text-secondary);
+  }
 }
 
 .btn-icon {
@@ -179,7 +202,7 @@
   cursor: pointer;
   color: var(--text-secondary);
   transition: transform 0.2s;
-  
+
   &:hover {
     color: var(--primary);
     transform: rotate(90deg);
@@ -190,12 +213,12 @@
   .clock-card .action-buttons {
     flex-direction: column;
     width: 100%;
-    
+
     .btn-large {
       width: 100%;
     }
   }
-  
+
   .stats-grid {
     grid-template-columns: 1fr;
   }

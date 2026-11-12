@@ -18,6 +18,9 @@ namespace InternLog.API.Modules.Auth;
 /// </summary>
 public class AuthService : IAuthService
 {
+    // hash จำลอง ใช้ verify เมื่อไม่พบ email เพื่อให้เวลาตอบเท่ากับกรณีพบ user (กันเดา email จากเวลา)
+    private static readonly string DummyPasswordHash = PasswordHasher.Hash(Guid.NewGuid().ToString());
+
     private readonly AppDbContext _db;
     private readonly IConfiguration _config;
     private readonly ILogger<AuthService> _logger;
@@ -37,9 +40,9 @@ public class AuthService : IAuthService
             .Include(u => u.Role)
             .FirstOrDefaultAsync(u => u.Email == req.Email && u.IsActive);
 
-        // Timing-safe: ตรวจ BCrypt เสมอแม้ user ไม่มี (กัน timing attack)
-        var passwordValid = user != null
-            && PasswordHasher.Verify(req.Password, user.PasswordHash);
+        // Timing-safe: รัน BCrypt ทุกครั้ง แม้ไม่พบ user (กันเดา email จากเวลาตอบ)
+        var passwordMatches = PasswordHasher.Verify(req.Password, user?.PasswordHash ?? DummyPasswordHash);
+        var passwordValid   = user != null && passwordMatches;
 
         if (!passwordValid)
             throw AppException.Unauthorized("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
@@ -72,7 +75,7 @@ public class AuthService : IAuthService
             StudentID    = req.StudentID,
             Phone        = req.Phone,
             IsActive     = true,
-            CreatedAt    = DateTime.Now
+            CreatedAt    = AppClock.Now
         };
 
         _db.Users.Add(user);
@@ -88,46 +91,51 @@ public class AuthService : IAuthService
     // ─── Refresh Token (Rotation) ────────────────────────────────────────────
     public async Task<LoginResponse> RefreshAsync(string refreshToken)
     {
-        // ค้นหาและตรวจสอบ token ทุกตัวของ user นั้น (BCrypt verify)
-        var activeTokens = await _db.RefreshTokens
+        // Hash ครั้งเดียว — O(1) DB lookup แทนการ BCrypt.Verify วนทุก token (กัน DoS)
+        var tokenHash = Sha256Hasher.Hash(refreshToken);
+        var now       = DateTime.UtcNow;
+
+        var storedToken = await _db.RefreshTokens
+            .AsNoTracking()
             .Include(rt => rt.User)
                 .ThenInclude(u => u.Role)
-            .Where(rt => rt.RevokedAt == null && rt.ExpiresAt > DateTime.UtcNow)
-            .ToListAsync();
+            .FirstOrDefaultAsync(rt =>
+                rt.TokenHash == tokenHash &&
+                rt.RevokedAt == null      &&
+                rt.ExpiresAt > now);
 
-        // หา token ที่ตรงกัน (BCrypt.Verify ช้า — ต้อง filter เบื้องต้นก่อน)
-        var storedToken = activeTokens.FirstOrDefault(rt =>
-            PasswordHasher.Verify(refreshToken, rt.TokenHash));
-
-        if (storedToken is null)
+        if (storedToken is null || !storedToken.User.IsActive)
             throw AppException.Unauthorized("Refresh token ไม่ถูกต้องหรือหมดอายุ");
 
-        // Revoke token เก่า
-        storedToken.RevokedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync();
+        // Revoke แบบ atomic (UPDATE ... WHERE RevokedAt IS NULL)
+        // ถ้ามี request อื่นใช้ token ตัวเดียวกันไปก่อนแล้ว จะได้ 0 แถว → ไม่ออก token ใหม่ซ้ำ
+        var revoked = await _db.RefreshTokens
+            .Where(rt => rt.RefreshTokenID == storedToken.RefreshTokenID && rt.RevokedAt == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(rt => rt.RevokedAt, now));
 
-        // ออก token คู่ใหม่
-        var newPair = await GenerateTokenPairAsync(storedToken.User);
+        if (revoked == 0)
+            throw AppException.Unauthorized("Refresh token ไม่ถูกต้องหรือหมดอายุ");
 
-        // บันทึก ReplacedByTokenID (Rotation chain)
-        var newTokenEntry = await _db.RefreshTokens
-            .OrderByDescending(rt => rt.RefreshTokenID)
-            .FirstAsync(rt => rt.UserID == storedToken.UserID);
-        storedToken.ReplacedByTokenID = newTokenEntry.RefreshTokenID;
-        await _db.SaveChangesAsync();
+        var (response, newToken) = await IssueTokenPairAsync(storedToken.User);
 
-        return newPair;
+        // Rotation chain: ผูก token เก่ากับตัวใหม่ที่เพิ่งออก (ไม่เดาจาก token ล่าสุดของ user)
+        await _db.RefreshTokens
+            .Where(rt => rt.RefreshTokenID == storedToken.RefreshTokenID)
+            .ExecuteUpdateAsync(s => s.SetProperty(rt => rt.ReplacedByTokenID, newToken.RefreshTokenID));
+
+        return response;
     }
 
     // ─── Logout ─────────────────────────────────────────────────────────────
     public async Task LogoutAsync(string refreshToken)
     {
-        var activeTokens = await _db.RefreshTokens
-            .Where(rt => rt.RevokedAt == null && rt.ExpiresAt > DateTime.UtcNow)
-            .ToListAsync();
+        var tokenHash = Sha256Hasher.Hash(refreshToken);
 
-        var storedToken = activeTokens.FirstOrDefault(rt =>
-            PasswordHasher.Verify(refreshToken, rt.TokenHash));
+        var storedToken = await _db.RefreshTokens
+            .FirstOrDefaultAsync(rt =>
+                rt.TokenHash == tokenHash &&
+                rt.RevokedAt == null      &&
+                rt.ExpiresAt > DateTime.UtcNow);
 
         if (storedToken is not null)
         {
@@ -200,7 +208,7 @@ public class AuthService : IAuthService
 
         // สร้าง random token
         var token     = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
-        var tokenHash = PasswordHasher.Hash(token);
+        var tokenHash = Sha256Hasher.Hash(token);
 
         var resetToken = new PasswordResetToken
         {
@@ -208,7 +216,7 @@ public class AuthService : IAuthService
             TokenHash = tokenHash,
             ExpiresAt = DateTime.UtcNow.AddHours(Constants.PasswordReset.TokenExpiryHours),
             IsUsed    = false,
-            CreatedAt = DateTime.Now
+            CreatedAt = DateTime.UtcNow
         };
 
         _db.PasswordResetTokens.Add(resetToken);
@@ -224,14 +232,15 @@ public class AuthService : IAuthService
     // ─── Reset Password ──────────────────────────────────────────────────────
     public async Task ResetPasswordAsync(ResetPasswordRequest req)
     {
-        // ดึง token ที่ยังไม่ใช้และยังไม่หมดอายุ
-        var activeTokens = await _db.PasswordResetTokens
-            .Include(t => t.User)
-            .Where(t => !t.IsUsed && t.ExpiresAt > DateTime.UtcNow)
-            .ToListAsync();
+        // ดึง token ที่ยังไม่ใช้และยังไม่หมดอายุ (hash once → O(1) DB lookup)
+        var tokenHash = Sha256Hasher.Hash(req.Token);
 
-        var resetToken = activeTokens.FirstOrDefault(t =>
-            PasswordHasher.Verify(req.Token, t.TokenHash));
+        var resetToken = await _db.PasswordResetTokens
+            .Include(t => t.User)
+            .FirstOrDefaultAsync(t =>
+                t.TokenHash == tokenHash &&
+                !t.IsUsed               &&
+                t.ExpiresAt > DateTime.UtcNow);
 
         if (resetToken is null)
             throw AppException.BadRequest("ลิงก์รีเซ็ตรหัสผ่านไม่ถูกต้องหรือหมดอายุ");
@@ -256,21 +265,26 @@ public class AuthService : IAuthService
 
     /// <summary>สร้าง AccessToken + RefreshToken คู่ใหม่ พร้อมบันทึก hash ลง DB</summary>
     private async Task<LoginResponse> GenerateTokenPairAsync(User user)
+        => (await IssueTokenPairAsync(user)).Response;
+
+    /// <summary>เหมือน <see cref="GenerateTokenPairAsync"/> แต่คืน entity ของ refresh token ที่บันทึกด้วย</summary>
+    private async Task<(LoginResponse Response, RefreshToken Entity)> IssueTokenPairAsync(User user)
     {
         var accessToken  = GenerateAccessToken(user);
         var refreshToken = GenerateRefreshToken();
 
-        // บันทึก hash ของ refresh token (ไม่บันทึกตัวดิบ)
-        _db.RefreshTokens.Add(new RefreshToken
+        // บันทึก hash ของ refresh token (ไม่บันทึกตัวดิบ) — เวลาของ token ใช้ UTC ทั้งหมด
+        var entity = new RefreshToken
         {
             UserID    = user.UserID,
-            TokenHash = PasswordHasher.Hash(refreshToken),
+            TokenHash = Sha256Hasher.Hash(refreshToken),
             ExpiresAt = DateTime.UtcNow.AddDays(Constants.Jwt.RefreshTokenDays),
-            CreatedAt = DateTime.Now
-        });
+            CreatedAt = DateTime.UtcNow
+        };
+        _db.RefreshTokens.Add(entity);
         await _db.SaveChangesAsync();
 
-        return new LoginResponse(accessToken, refreshToken, ToDto(user));
+        return (new LoginResponse(accessToken, refreshToken, ToDto(user)), entity);
     }
 
     /// <summary>สร้าง JWT AccessToken (2 ชั่วโมง)</summary>

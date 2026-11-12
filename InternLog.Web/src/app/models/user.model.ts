@@ -11,8 +11,7 @@ export interface User {
 
 export interface AuthResponse {
   accessToken: string;
-  refreshToken: string;
-  user: User;
+  user: User; // refresh token อยู่ใน httpOnly cookie (JavaScript อ่านไม่ได้)
 }
 
 export interface ApiResponse<T> {

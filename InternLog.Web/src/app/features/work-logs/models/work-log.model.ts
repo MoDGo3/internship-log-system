@@ -28,6 +28,7 @@ export interface WorkLog {
   logDate: string;
   title: string;
   description: string;
+  detail?: string;
   problem?: string;
   solution?: string;
   categoryID?: number;

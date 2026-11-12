@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { CompaniesService } from '../services/companies.service';
 import { Company } from '../models/companies.model';
-import { AuthService } from '../../auth/services/auth.service';
+import { AuthService } from '../../../core/auth/auth.service';
 
 @Component({
   selector: 'app-companies',
@@ -131,14 +131,14 @@ export class CompaniesComponent implements OnInit {
   }
 
   canManage(): boolean {
-    const role = this.authService.currentUser()?.roleName;
+    const role = this.authService.currentUser()?.role;
     return role === 'advisor' || role === 'admin';
   }
 
   canEdit(company: Company): boolean {
     const user = this.authService.currentUser();
-    if (user?.roleName === 'admin') return true;
-    if (user?.roleName === 'advisor') return company.advisorID === user.userID;
+    if (user?.role === 'admin') return true;
+    if (user?.role === 'advisor') return company.advisorID === user.userID;
     return false;
   }
 

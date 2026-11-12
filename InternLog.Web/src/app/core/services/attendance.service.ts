@@ -26,14 +26,13 @@ export class AttendanceService {
   }
 
   checkIn(note: string | null): Observable<ApiResponse<AttendanceRecord>> {
-    // Backend API accepts a string body (the note) or null
-    return this.http.post<ApiResponse<AttendanceRecord>>(`${this.apiUrl}/check-in`, note ? JSON.stringify(note) : 'null', {
+    return this.http.post<ApiResponse<AttendanceRecord>>(`${this.apiUrl}/check-in`, { note }, {
       headers: { 'Content-Type': 'application/json' }
     });
   }
 
   checkOut(note: string | null): Observable<ApiResponse<AttendanceRecord>> {
-    return this.http.post<ApiResponse<AttendanceRecord>>(`${this.apiUrl}/check-out`, note ? JSON.stringify(note) : 'null', {
+    return this.http.post<ApiResponse<AttendanceRecord>>(`${this.apiUrl}/check-out`, { note }, {
       headers: { 'Content-Type': 'application/json' }
     });
   }

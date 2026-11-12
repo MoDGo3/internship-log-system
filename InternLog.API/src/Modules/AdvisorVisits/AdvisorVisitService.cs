@@ -27,10 +27,10 @@ public class AdvisorVisitService : IAdvisorVisitService
         if (internship == null)
             throw AppException.NotFound("ไม่พบข้อมูลการฝึกงานนี้");
 
-        if (role == "student" && internship.StudentID != userId)
+        if (role == Constants.Roles.Student && internship.StudentID != userId)
             throw AppException.Forbidden("คุณไม่มีสิทธิ์เข้าถึงข้อมูลนี้");
             
-        if (role == "advisor" && internship.AdvisorID != userId)
+        if (role == Constants.Roles.Advisor && internship.AdvisorID != userId)
             throw AppException.Forbidden("คุณไม่มีสิทธิ์เข้าถึงข้อมูลนี้");
 
         var visits = await _context.AdvisorVisits
@@ -87,7 +87,7 @@ public class AdvisorVisitService : IAdvisorVisitService
             VisitType = request.VisitType,
             Summary = request.Summary,
             Score = request.Score,
-            CreatedAt = DateTime.Now
+            CreatedAt = AppClock.Now
         };
 
         _context.AdvisorVisits.Add(visit);
@@ -139,10 +139,10 @@ public class AdvisorVisitService : IAdvisorVisitService
         var userId = _currentUser.UserId;
         var role = _currentUser.Role;
 
-        if (role == "student" && internship.StudentID != userId)
+        if (role == Constants.Roles.Student && internship.StudentID != userId)
             throw AppException.Forbidden("คุณไม่มีสิทธิ์เข้าถึงข้อมูลนี้");
 
-        if (role == "advisor" && internship.AdvisorID != userId)
+        if (role == Constants.Roles.Advisor && internship.AdvisorID != userId)
             throw AppException.Forbidden("คุณไม่มีสิทธิ์เข้าถึงข้อมูลนี้");
     }
 

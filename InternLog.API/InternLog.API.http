@@ -1,6 +1,46 @@
-@InternLog.API_HostAddress = http://localhost:5005
+### InternLog API — ตัวอย่าง request สำหรับทดสอบด้วยมือ (Visual Studio / VS Code REST Client)
+### รัน API ก่อน: dotnet run --launch-profile http
+@host = http://localhost:5005
+@accessToken = <วาง accessToken จาก response ของ login>
 
-GET {{InternLog.API_HostAddress}}/weatherforecast/
-Accept: application/json
+### Login (refresh token ถูกตั้งเป็น httpOnly cookie ใน response)
+POST {{host}}/api/auth/login
+Content-Type: application/json
 
-###
+{
+  "email": "student@test.com",
+  "password": "Test@1234"
+}
+
+### ต่ออายุ token — ใช้ cookie "refreshToken" ที่ได้จาก login (body ว่าง)
+POST {{host}}/api/auth/refresh
+
+### ข้อมูลผู้ใช้ปัจจุบัน
+GET {{host}}/api/auth/me
+Authorization: Bearer {{accessToken}}
+
+### แดชบอร์ด (ตัวเลขตาม role)
+GET {{host}}/api/dashboard
+Authorization: Bearer {{accessToken}}
+
+### ใบลาของตัวเอง (attachmentUrl ชี้ไปที่ endpoint ดาวน์โหลดด้านล่าง)
+GET {{host}}/api/leaves
+Authorization: Bearer {{accessToken}}
+
+### ดาวน์โหลดไฟล์แนบใบลา (ต้องเป็นเจ้าของ / อาจารย์ที่ดูแล / admin)
+GET {{host}}/api/leaves/1/attachment
+Authorization: Bearer {{accessToken}}
+
+### ดาวน์โหลดไฟล์แนบ Work Log
+GET {{host}}/api/worklogs/attachments/1
+Authorization: Bearer {{accessToken}}
+
+### ดาวน์โหลด PDF รายงาน (สร้างใหม่ทุกครั้ง)
+GET {{host}}/api/reports/1/export-pdf
+Authorization: Bearer {{accessToken}}
+
+### ต้องได้ 401 — ไฟล์ไม่ถูกเสิร์ฟแบบ static อีกต่อไป และไม่มี token
+GET {{host}}/api/leaves/1/attachment
+
+### Logout (revoke refresh token + ลบ cookie)
+POST {{host}}/api/auth/logout

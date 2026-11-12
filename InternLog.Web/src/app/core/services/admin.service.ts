@@ -1,7 +1,22 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, throwError } from 'rxjs';
+import { Observable, catchError, map, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { ApiResponse } from '../../models/user.model';
+
+/** ผู้ใช้ในรูปแบบที่หน้า admin/users แสดง */
+export interface AdminUser {
+  id: string;
+  code: string;
+  name: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  username: string;
+  role: 'student' | 'advisor' | 'admin';
+  status: 'active' | 'suspended';
+  isActive: boolean;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -12,6 +27,24 @@ export class AdminService {
   constructor(private http: HttpClient) {}
 
   // --- Users ---
+  /** รายชื่อผู้ใช้แปลงเป็น AdminUser สำหรับตาราง (API ส่ง role มาในชื่อ roleName) */
+  getUserList(): Observable<AdminUser[]> {
+    return this.http.get<ApiResponse<any[]>>(`${this.apiUrl}/users`).pipe(
+      map(res => (res.data || []).map(u => ({
+        id: u.userID?.toString(),
+        code: u.studentID || '-',
+        name: `${u.firstName} ${u.lastName}`,
+        firstName: u.firstName || '',
+        lastName: u.lastName || '',
+        email: u.email || '',
+        username: u.email || '',
+        role: u.roleName ?? u.role,
+        status: u.isActive ? 'active' : 'suspended',
+        isActive: u.isActive
+      } as AdminUser)))
+    );
+  }
+
   getUsers(): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/users`).pipe(
       catchError(this.handleError)

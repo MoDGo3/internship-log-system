@@ -12,7 +12,8 @@ export const routes: Routes = [
     children: [
       {
         path: 'dashboard',
-        loadComponent: () => import('./features/dashboard/dashboard-student/dashboard-student.component').then(m => m.DashboardStudentComponent)
+        // เลือกแดชบอร์ดตาม role (student / advisor+admin)
+        loadComponent: () => import('./features/dashboard/dashboard-page.component').then(m => m.DashboardPageComponent)
       },
       {
         path: 'attendance',
@@ -105,6 +106,10 @@ export const routes: Routes = [
   {
     path: 'forgot-password',
     loadComponent: () => import('./features/auth/forgot-password/forgot-password.component').then(m => m.ForgotPasswordComponent)
+  },
+  {
+    path: 'reset-password',
+    loadComponent: () => import('./features/auth/reset-password/reset-password.component').then(m => m.ResetPasswordComponent)
   },
   { path: '**', redirectTo: 'login' }
 ];

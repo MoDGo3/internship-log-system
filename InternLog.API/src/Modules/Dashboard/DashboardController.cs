@@ -29,8 +29,8 @@ public class DashboardController : ControllerBase
     [HttpGet("calendar")]
     public async Task<IActionResult> GetCalendar([FromQuery] int year, [FromQuery] int month)
     {
-        if (year == 0) year = DateTime.Now.Year;
-        if (month == 0) month = DateTime.Now.Month;
+        if (year == 0) year = AppClock.Now.Year;
+        if (month == 0) month = AppClock.Now.Month;
 
         var calendar = await _dashboardService.GetCalendarAsync(year, month);
         return Ok(ApiResponse<IEnumerable<CalendarDayDto>>.Ok(calendar));

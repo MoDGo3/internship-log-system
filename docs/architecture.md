@@ -9,12 +9,11 @@ flowchart LR
     Browser["Browser<br/>Angular 17 SPA<br/>localhost:4200"]
     API["ASP.NET Core API (.NET 10)<br/>localhost:5005"]
     DB[("SQL Server<br/>InternLogDB")]
-    FS[["wwwroot/uploads<br/>ไฟล์แนบ + PDF"]]
+    FS[["App_Data/uploads<br/>ไฟล์แนบ + PDF"]]
 
-    Browser -- "HTTP JSON + Bearer JWT" --> API
+    Browser -- "HTTP JSON + Bearer JWT<br/>+ refresh cookie (/api/auth)" --> API
     API -- "EF Core" --> DB
-    API -- "เขียน/ลบไฟล์" --> FS
-    Browser -. "โหลดไฟล์ผ่าน static files" .-> FS
+    API -- "IFileStorage<br/>(ดาวน์โหลดผ่าน endpoint ที่ตรวจสิทธิ์)" --> FS
 ```
 
 | ชั้น | เทคโนโลยีหลัก |
@@ -34,11 +33,12 @@ InternLog.API/
 ├── Migrations/                # EF Core migrations
 └── src/
     ├── Core/                  # ของที่ใช้ร่วมกันทุกโมดูล
-    │   ├── Common/            # ApiResponse<T>, AppException, AppControllerBase, Constants
+    │   ├── Common/            # ApiResponse<T>, AppException, AppControllerBase, Constants, AppClock
     │   ├── Interfaces/        # ICurrentUserService
-    │   └── Security/          # CurrentUserService, PasswordHasher (BCrypt), Sha256Hasher
+    │   ├── Security/          # CurrentUserService, PasswordHasher (BCrypt), Sha256Hasher
+    │   └── Storage/           # IFileStorage / LocalFileStorage (ตรวจ + เก็บไฟล์อัปโหลด)
     ├── Infrastructure/
-    │   ├── Data/              # AppDbContext (Fluent config + HasData), Models/Entities.cs
+    │   ├── Data/              # AppDbContext (Fluent config + HasData), Models/Entities.cs, DevDataSeeder
     │   └── Middleware/        # ExceptionMiddleware
     └── Modules/               # แยกตามฟีเจอร์
         ├── Auth/  Attendance/  Leaves/  WorkLogs/  Tasks/
@@ -48,7 +48,7 @@ InternLog.API/
 
 ### 2.2 รูปแบบของแต่ละโมดูล
 
-ทุกโมดูล (ยกเว้น Companies) มีโครงเดียวกัน:
+ทุกโมดูลมีโครงเดียวกัน:
 
 ```
 Modules/<Name>/
@@ -58,14 +58,13 @@ Modules/<Name>/
 └── DTOs/                 # request/response records
 ```
 
-Service ลงทะเบียนใน `Program.cs` แบบ `AddScoped<IXService, XService>()`
-`CompaniesController` เป็นข้อยกเว้น — query `AppDbContext` ตรงใน controller
+Service ลงทะเบียนใน `Program.cs` แบบ `AddScoped<IXService, XService>()` · `IFileStorage` เป็น singleton
 
 ### 2.3 Request pipeline
 
 ```mermaid
 flowchart LR
-    R[Request] --> EM[ExceptionMiddleware] --> SF[StaticFiles] --> C[CORS] --> AN[Authentication<br/>JWT] --> AZ[Authorization<br/>Roles] --> CT[Controller] --> S[Service] --> DB[(DbContext)]
+    R[Request] --> EM[ExceptionMiddleware] --> C[CORS] --> AN[Authentication<br/>JWT] --> AZ[Authorization<br/>Roles] --> CT[Controller] --> S[Service] --> DB[(DbContext)]
 ```
 
 ### 2.4 Response และ error
@@ -99,25 +98,34 @@ sequenceDiagram
     W->>A: POST /login {email, password}
     A->>D: หา user (IsActive) + BCrypt.Verify
     A->>D: บันทึก SHA-256(refreshToken)
-    A-->>W: accessToken (JWT 120 นาที) + refreshToken (7 วัน) + user
-    Note over W: เก็บทั้งหมดใน localStorage
+    A-->>W: body: accessToken (JWT 120 นาที) + user<br/>Set-Cookie: refreshToken (HttpOnly, 7 วัน)
+    Note over W: accessToken + user ใน localStorage<br/>refresh token JavaScript อ่านไม่ได้
     W->>A: GET /api/... (Authorization: Bearer)
     A-->>W: 401 เมื่อ access token หมดอายุ
-    W->>A: POST /refresh {refreshToken}
-    A->>D: หา hash → revoke ตัวเก่า → ออกคู่ใหม่ (rotation)
-    A-->>W: token คู่ใหม่ แล้ว retry request เดิม
+    W->>A: POST /refresh (browser แนบ cookie เอง)
+    A->>D: revoke ตัวเก่าแบบ atomic → ออกคู่ใหม่ → ผูก ReplacedByTokenID
+    A-->>W: accessToken ใหม่ + cookie ใหม่ แล้ว retry request เดิม
 ```
 
 | เรื่อง | รายละเอียด |
 |---|---|
 | Access token | JWT HS256, อายุ 120 นาที, claims: `sub` (UserID), `name`, role, `jti` · `ClockSkew = 0` |
-| Refresh token | 64 bytes สุ่ม, เก็บใน DB เป็น SHA-256 hash, อายุ 7 วัน, หมุนทุกครั้งที่ใช้ (`ReplacedByTokenID`) |
+| Refresh token | 64 bytes สุ่ม, ส่งผ่าน cookie `HttpOnly; SameSite=Strict; Path=/api/auth` (Secure เมื่อเป็น HTTPS), เก็บใน DB เป็น SHA-256 hash, อายุ 7 วัน, หมุนทุกครั้งที่ใช้ — ใช้ซ้ำหรือ user ถูกปิดใช้งาน → 401 |
+| Login | รัน BCrypt ทุกครั้งแม้ไม่พบ email (เวลาตอบเท่ากัน กันเดา email) |
 | Password | BCrypt work factor 12 |
 | Reset password | token สุ่ม 64 bytes, เก็บเป็น SHA-256, อายุ 1 ชั่วโมง, ใช้ได้ครั้งเดียว |
 | เปลี่ยน/รีเซ็ตรหัสผ่าน | revoke refresh token ทั้งหมดของ user |
 | สมัครสมาชิก | ได้เฉพาะ role `student` |
 
-ฝั่งเว็บ: `core/interceptors/auth.interceptor.ts` แนบ Bearer token, ถ้า token หมดอายุหรือได้ 401 จะ refresh **ครั้งเดียว** ร่วมกันทุก request (shared observable) แล้ว retry
+ฝั่งเว็บ:
+- `core/interceptors/auth.interceptor.ts` แนบ Bearer token, ถ้า token หมดอายุหรือได้ 401 จะ refresh แล้ว retry · ไม่ refresh สำหรับ endpoint auth ที่ไม่ต้อง login (login, refresh, logout ฯลฯ)
+- `AuthService.refreshTokens()` ใช้ refresh ที่กำลังทำอยู่ร่วมกัน (ยิงพร้อมกันหลายครั้งจะล้มเหลวเพราะ token หมุน)
+- `authGuard` / `roleGuard` เรียก `ensureSession()` — ไม่มี access token ก็ลอง refresh ด้วย cookie ก่อนพาไป login
+
+### เวลา
+
+ใช้ `AppClock` (`Core/Common/AppClock.cs`) แทน `DateTime.Now` — คืนเวลาประเทศไทยเสมอไม่ว่า server ตั้ง timezone อะไร
+เวลาธุรกิจ (ลงเวลา, วันลา, CreatedAt) ใช้ `AppClock.Now` / `AppClock.Today` · เวลา token ใช้ `DateTime.UtcNow`
 
 ## 4. ข้อมูล (Database)
 
@@ -174,8 +182,8 @@ src/app/
 
 | Path | หน้าที่ | Role (guard) | เมนู sidebar แสดงให้ |
 |---|---|---|---|
-| `/login`, `/register`, `/forgot-password` | Auth | ไม่ต้อง login | — |
-| `/dashboard` | สรุปภาพรวม | ทุก role | ทุก role |
+| `/login`, `/register`, `/forgot-password`, `/reset-password` | Auth | ไม่ต้อง login | — |
+| `/dashboard` | สรุปภาพรวม (student: `dashboard-student`, advisor/admin: `dashboard-staff`) | ทุก role | ทุก role |
 | `/attendance` | ลงเวลา/ประวัติ | ทุก role | ทุก role |
 | `/leaves` | ใบลา | ทุก role | ทุก role |
 | `/calendar` | ปฏิทิน | ทุก role | ทุก role |
@@ -194,14 +202,33 @@ src/app/
 
 - Base URL: `environment.apiUrl` (`http://localhost:5005/api`)
 - ทุก service คืน `Observable<ApiResponse<T>>` ตรงกับ format ฝั่ง API
-- Service หลักที่หน้าจอใช้อยู่ใน `core/services/` — มี service ซ้ำบางตัวใน `features/*/services/` (ดู [project-status.md](project-status.md))
+- Service ส่วนใหญ่อยู่ใน `core/services/` · `work-logs` และ `companies` มี service ใน `features/<feature>/services/`
+- ไฟล์ที่ต้อง login (ไฟล์แนบ, PDF) โหลดผ่าน `core/services/file-download.service.ts` — ใช้ HttpClient (แนบ token) แล้วเปิดจาก blob แทน `<a href>`
 
 ## 6. ไฟล์อัปโหลด
 
-| ประเภท | ตำแหน่งที่เก็บ | สร้างโดย |
-|---|---|---|
-| ไฟล์แนบใบลา | `wwwroot/uploads/leaves/` | `LeaveService.SubmitLeaveAsync` |
-| ไฟล์แนบ Work Log | `wwwroot/uploads/worklogs/` | `WorkLogService.UploadAttachmentAsync` (ตรวจขนาด ≤ 5 MB, นามสกุล, magic bytes) |
-| PDF รายงาน | `wwwroot/uploads/reports/` | `ReportService.ExportPdfAsync` (QuestPDF) |
+`Core/Storage/FileStorage.cs` (`IFileStorage` / `LocalFileStorage`) จัดการไฟล์ทั้งหมด:
 
-DB เก็บ path แบบ relative (`/uploads/...`) และไฟล์ถูกเสิร์ฟผ่าน `UseStaticFiles()` โดย **ไม่ตรวจสิทธิ์** — ดูความเสี่ยงใน [project-status.md](project-status.md)
+- เก็บที่ `App_Data/uploads/<category>/<guid>.<ext>` (ตั้งค่าได้ด้วย `FileStorage:Root`) — **ไม่อยู่ใน wwwroot และไม่มี `UseStaticFiles()`**
+- ตรวจขนาด, นามสกุล (`.pdf .jpg .jpeg .png .doc .docx`) และ magic bytes ก่อนบันทึก · ไม่ใช้ชื่อไฟล์ของผู้ใช้บน disk
+- กัน path traversal ตอนเปิดไฟล์ · อ่าน path แบบเก่า (`/uploads/...`) ได้
+- ลบไฟล์จริงเมื่อลบไฟล์แนบหรือ Work Log
+
+| ประเภท | category | ขนาดสูงสุด | ดาวน์โหลดที่ | ใครดาวน์โหลดได้ |
+|---|---|---|---|---|
+| ไฟล์แนบใบลา | `leaves` | 10 MB | `GET /api/leaves/{id}/attachment` | เจ้าของ, อาจารย์ที่ดูแล, admin |
+| ไฟล์แนบ Work Log | `worklogs` | 5 MB | `GET /api/worklogs/attachments/{id}` | เจ้าของ, อาจารย์ที่ดูแล, admin |
+| PDF รายงาน | `reports` | — | `GET /api/reports/{id}/export-pdf` (สร้างใหม่ทุกครั้ง) | นักศึกษาเจ้าของ, อาจารย์ที่ดูแล |
+
+DB เก็บ path ภายใน ส่วน DTO ที่ส่งให้เว็บ (`attachmentUrl`, `fileUrl`, `filePath`) เป็น URL ของ endpoint ดาวน์โหลดข้างบน
+
+## 7. Tests (`InternLog.API.Tests/`)
+
+| ไฟล์ | ทดสอบ |
+|---|---|
+| `AuthServiceTests` | login, refresh rotation, reuse token, user ถูกปิดใช้งาน, logout, reset password |
+| `FileStorageTests` | magic bytes, นามสกุล, ขนาด, path traversal, path แบบเก่า |
+| `AttachmentAccessTests` | สิทธิ์ดาวน์โหลดไฟล์แนบใบลา/Work Log ของแต่ละ role |
+| `AuthCookieFlowTests` | ผ่าน HTTP จริง (`WebApplicationFactory`): cookie flow, `/uploads` ไม่ถูกเสิร์ฟ, endpoint ดาวน์โหลดต้อง login |
+
+ใช้ SQLite in-memory (`Infrastructure/TestDb.cs`) แทน SQL Server — `GETDATE()` ถูกแทนด้วย `CURRENT_TIMESTAMP` เฉพาะใน test

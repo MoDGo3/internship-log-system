@@ -1,12 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Hosting;
 using InternLog.API.Modules.WorkLogs.DTOs;
 using InternLog.API.Core.Interfaces;
 using InternLog.API.Core.Common;
+using InternLog.API.Core.Storage;
 using InternLog.API.Infrastructure.Data;
 using InternLog.API.Infrastructure.Data.Models;
-using System.IO;
 
 namespace InternLog.API.Modules.WorkLogs;
 
@@ -14,13 +13,16 @@ public class WorkLogService : IWorkLogService
 {
     private readonly AppDbContext _context;
     private readonly ICurrentUserService _currentUser;
-    private readonly IWebHostEnvironment _env;
+    private readonly IFileStorage _files;
 
-    public WorkLogService(AppDbContext context, ICurrentUserService currentUser, IWebHostEnvironment env)
+    private const string FileCategory = "worklogs";
+    private const long MaxAttachmentBytes = 5 * 1024 * 1024; // 5 MB
+
+    public WorkLogService(AppDbContext context, ICurrentUserService currentUser, IFileStorage files)
     {
         _context = context;
         _currentUser = currentUser;
-        _env = env;
+        _files = files;
     }
 
     private async Task<decimal?> GetComputedHoursAsync(int studentId, DateOnly logDate)
@@ -60,7 +62,7 @@ public class WorkLogService : IWorkLogService
             .Include(l => l.Category)
             .Include(l => l.Attachments)
             .Include(l => l.LogComments).ThenInclude(c => c.User)
-            .Where(l => _currentUser.Role == "admin" ||
+            .Where(l => _currentUser.Role == Constants.Roles.Admin ||
                 l.StudentID == _currentUser.UserId ||
                 _context.Internships.Any(i => i.StudentID == l.StudentID && i.AdvisorID == _currentUser.UserId))
             .OrderBy(l => l.LogDate)
@@ -82,9 +84,9 @@ public class WorkLogService : IWorkLogService
             throw AppException.NotFound("ไม่พบบันทึกการทำงานนี้");
 
         // Enforce ownership for student and advisor access; admin is read-only.
-        if (_currentUser.Role == "student" && log.StudentID != _currentUser.UserId)
+        if (_currentUser.Role == Constants.Roles.Student && log.StudentID != _currentUser.UserId)
             throw AppException.Forbidden("คุณไม่มีสิทธิ์เข้าถึงบันทึกการทำงานของผู้อื่น");
-        if (_currentUser.Role == "advisor" &&
+        if (_currentUser.Role == Constants.Roles.Advisor &&
             !await _context.Internships.AnyAsync(i => i.StudentID == log.StudentID && i.AdvisorID == _currentUser.UserId))
             throw AppException.Forbidden("คุณไม่มีสิทธิ์เข้าถึงบันทึกการทำงานของนักศึกษาคนนี้");
 
@@ -113,7 +115,7 @@ public class WorkLogService : IWorkLogService
             Detail = request.Detail,
             Problem = request.Problem,
             Solution = request.Solution,
-            CreatedAt = DateTime.Now
+            CreatedAt = AppClock.Now
         };
 
         _context.WorkLogs.Add(log);
@@ -154,7 +156,7 @@ public class WorkLogService : IWorkLogService
         log.Detail = request.Detail;
         log.Problem = request.Problem;
         log.Solution = request.Solution;
-        log.UpdatedAt = DateTime.Now;
+        log.UpdatedAt = AppClock.Now;
 
         await _context.SaveChangesAsync();
 
@@ -164,7 +166,9 @@ public class WorkLogService : IWorkLogService
     public async Task DeleteLogAsync(int logId)
     {
         var studentId = _currentUser.UserId;
-        var log = await _context.WorkLogs.FirstOrDefaultAsync(l => l.LogID == logId);
+        var log = await _context.WorkLogs
+            .Include(l => l.Attachments)
+            .FirstOrDefaultAsync(l => l.LogID == logId);
 
         if (log == null)
             throw AppException.NotFound("ไม่พบบันทึกการทำงานนี้");
@@ -172,36 +176,16 @@ public class WorkLogService : IWorkLogService
         if (log.StudentID != studentId)
             throw AppException.Forbidden("ลบได้เฉพาะบันทึกการทำงานของตนเองเท่านั้น");
 
+        var storedPaths = log.Attachments.Select(a => a.FilePath).ToList();
+
         _context.WorkLogs.Remove(log);
         await _context.SaveChangesAsync();
+
+        // ลบไฟล์จริงหลังลบข้อมูลใน DB สำเร็จแล้ว
+        storedPaths.ForEach(_files.Delete);
     }
 
 
-    private bool IsValidFileSignature(IFormFile file, string extension)
-    {
-        using var reader = new BinaryReader(file.OpenReadStream());
-        var signatures = new Dictionary<string, List<byte[]>>
-        {
-            { ".jpeg", new List<byte[]> { new byte[] { 0xFF, 0xD8, 0xFF } } },
-            { ".jpg", new List<byte[]> { new byte[] { 0xFF, 0xD8, 0xFF } } },
-            { ".png", new List<byte[]> { new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A } } },
-            { ".pdf", new List<byte[]> { new byte[] { 0x25, 0x50, 0x44, 0x46 } } },
-            { ".doc", new List<byte[]> { new byte[] { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 } } },
-            { ".docx", new List<byte[]> { new byte[] { 0x50, 0x4B, 0x03, 0x04 } } }
-        };
-
-        if (!signatures.ContainsKey(extension)) return false;
-        
-        var allowedSignatures = signatures[extension];
-        var maxHeaderBytes = allowedSignatures.Max(m => m.Length);
-        
-        if (file.Length < maxHeaderBytes) return false;
-        
-        var headerBytes = reader.ReadBytes(maxHeaderBytes);
-        
-        return allowedSignatures.Any(signature => 
-            headerBytes.Take(signature.Length).SequenceEqual(signature));
-    }
 
     public async Task<AttachmentResponseDto> UploadAttachmentAsync(int logId, IFormFile file)
     {
@@ -214,49 +198,29 @@ public class WorkLogService : IWorkLogService
         if (log.StudentID != studentId)
             throw AppException.Forbidden("อัปโหลดไฟล์ได้เฉพาะบันทึกการทำงานของตนเองเท่านั้น");
 
-        var maxFileSize = 5 * 1024 * 1024; // 5 MB
-        if (file.Length > maxFileSize)
-            throw AppException.BadRequest("ขนาดไฟล์ต้องไม่เกิน 5 MB");
-
-        var allowedExtensions = new[] { ".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx" };
-        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-        if (!allowedExtensions.Contains(extension))
-            throw AppException.BadRequest("รองรับเฉพาะไฟล์ .pdf, .jpg, .png, .doc, .docx เท่านั้น");
-
-        if (!IsValidFileSignature(file, extension))
-            throw AppException.BadRequest("ไฟล์ไม่ถูกต้องตามนามสกุล (Invalid magic bytes)");
-
-        var uploadsFolder = Path.Combine(_env.WebRootPath, "uploads", "worklogs");
-        if (!Directory.Exists(uploadsFolder))
-            Directory.CreateDirectory(uploadsFolder);
-
-        var uniqueFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(file.FileName);
-        var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-        using (var fileStream = new FileStream(filePath, FileMode.Create))
-        {
-            await file.CopyToAsync(fileStream);
-        }
+        var storedPath = await _files.SaveUploadAsync(file, FileCategory, MaxAttachmentBytes);
 
         var attachment = new Attachment
         {
             LogID = logId,
-            FileName = file.FileName,
-            FilePath = $"/uploads/worklogs/{uniqueFileName}",
+            FileName = Path.GetFileName(file.FileName),
+            FilePath = storedPath,
             FileSize = file.Length,
-            UploadedAt = DateTime.Now
+            UploadedAt = AppClock.Now
         };
 
         _context.Attachments.Add(attachment);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch
+        {
+            _files.Delete(storedPath); // ไม่ทิ้งไฟล์กำพร้าถ้าบันทึก DB ไม่สำเร็จ
+            throw;
+        }
 
-        return new AttachmentResponseDto(
-            attachment.AttachmentID,
-            attachment.FileName,
-            attachment.FilePath,
-            attachment.FileSize,
-            attachment.UploadedAt
-        );
+        return ToAttachmentDto(attachment);
     }
 
     public async Task DeleteAttachmentAsync(int attachmentId)
@@ -273,15 +237,9 @@ public class WorkLogService : IWorkLogService
             throw AppException.Forbidden("สามารถลบได้เฉพาะไฟล์ของตนเองเท่านั้น");
 
 
-        // Optionally delete the physical file
-        var physicalPath = Path.Combine(_env.WebRootPath, attachment.FilePath.TrimStart('/'));
-        if (File.Exists(physicalPath))
-        {
-            File.Delete(physicalPath);
-        }
-
         _context.Attachments.Remove(attachment);
         await _context.SaveChangesAsync();
+        _files.Delete(attachment.FilePath);
     }
 
     public async Task<CommentResponseDto> AddCommentAsync(int logId, CommentRequestDto commentDto)
@@ -304,7 +262,7 @@ public class WorkLogService : IWorkLogService
             LogID = logId,
             UserID = userId,
             Comment = commentDto.Message,
-            CreatedAt = DateTime.Now
+            CreatedAt = AppClock.Now
         };
 
         _context.LogComments.Add(comment);
@@ -320,15 +278,41 @@ public class WorkLogService : IWorkLogService
         );
     }
 
+    public async Task<StoredFile> GetAttachmentAsync(int attachmentId)
+    {
+        var attachment = await _context.Attachments
+            .Include(a => a.WorkLog)
+            .FirstOrDefaultAsync(a => a.AttachmentID == attachmentId)
+            ?? throw AppException.NotFound("ไม่พบไฟล์แนบนี้");
+
+        var studentId = attachment.WorkLog.StudentID;
+        var canAccess = _currentUser.Role switch
+        {
+            Constants.Roles.Admin   => true,
+            Constants.Roles.Student => studentId == _currentUser.UserId,
+            Constants.Roles.Advisor => await _context.Internships
+                .AnyAsync(i => i.StudentID == studentId && i.AdvisorID == _currentUser.UserId),
+            _ => false
+        };
+        if (!canAccess)
+            throw AppException.Forbidden("คุณไม่มีสิทธิ์เข้าถึงไฟล์แนบนี้");
+
+        return _files.Open(attachment.FilePath, attachment.FileName)
+            ?? throw AppException.NotFound("ไม่พบไฟล์แนบ");
+    }
+
+    /// <summary>FileUrl ชี้ไปที่ endpoint ดาวน์โหลด (ตรวจสิทธิ์) ไม่ใช่ path จริงของไฟล์</summary>
+    private static AttachmentResponseDto ToAttachmentDto(Attachment a) => new(
+        a.AttachmentID,
+        a.FileName,
+        $"/api/worklogs/attachments/{a.AttachmentID}",
+        a.FileSize,
+        a.UploadedAt
+    );
+
     private static WorkLogResponseDto MapToDto(WorkLog log)
     {
-        var attachments = log.Attachments?.Select(a => new AttachmentResponseDto(
-            a.AttachmentID,
-            a.FileName,
-            a.FilePath,
-            a.FileSize,
-            a.UploadedAt
-        )).ToList() ?? new List<AttachmentResponseDto>();
+        var attachments = log.Attachments?.Select(ToAttachmentDto).ToList() ?? new List<AttachmentResponseDto>();
 
         var comments = log.LogComments?.Select(c => new CommentResponseDto(
             c.CommentID,

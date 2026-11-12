@@ -9,6 +9,7 @@ using InternLog.API.Infrastructure.Data;
 using InternLog.API.Infrastructure.Middleware;
 using InternLog.API.Modules.Auth;
 using QuestPDF.Infrastructure;
+using InternLog.API.Core.Common;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -77,7 +78,8 @@ builder.Services.AddCors(options =>
         policy.WithOrigins("http://localhost:4200")
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials();
+              .AllowCredentials()
+              .WithExposedHeaders("Content-Disposition"); // ให้ Angular อ่านชื่อไฟล์ตอนดาวน์โหลดได้
     });
 });
 
@@ -101,6 +103,8 @@ builder.Services.AddHttpContextAccessor();
 
 // ─── 7. Core Services ────────────────────────────────────────────────────────
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+// ไฟล์อัปโหลดเก็บใน App_Data/uploads (นอก wwwroot) — ดาวน์โหลดได้เฉพาะผ่าน endpoint ที่ตรวจสิทธิ์
+builder.Services.AddSingleton<InternLog.API.Core.Storage.IFileStorage, InternLog.API.Core.Storage.LocalFileStorage>();
 
 // ─── 8. Module Services (เพิ่มทีละโมดูลตาม development) ─────────────────────
 builder.Services.AddScoped<InternLog.API.Modules.Auth.IAuthService, InternLog.API.Modules.Auth.AuthService>();
@@ -115,6 +119,7 @@ builder.Services.AddScoped<InternLog.API.Modules.Notifications.INotificationServ
 builder.Services.AddScoped<InternLog.API.Modules.Evaluations.IEvaluationService, InternLog.API.Modules.Evaluations.EvaluationService>();
 builder.Services.AddScoped<InternLog.API.Modules.Admin.IAdminService, InternLog.API.Modules.Admin.AdminService>();
 builder.Services.AddScoped<InternLog.API.Modules.Dashboard.IDashboardService, InternLog.API.Modules.Dashboard.DashboardService>();
+builder.Services.AddScoped<InternLog.API.Modules.Companies.ICompanyService, InternLog.API.Modules.Companies.CompanyService>();
 
 // ─── Build App ───────────────────────────────────────────────────────────────
 var app = builder.Build();
@@ -133,7 +138,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
 app.UseCors("Angular");
 app.UseAuthentication(); // JWT ก่อน
 app.UseAuthorization();  // RBAC หลัง
@@ -149,74 +153,8 @@ if (app.Environment.IsDevelopment())
         db.Database.Migrate();
         Console.WriteLine("✅ Database migration สำเร็จ");
 
-        // Seed Roles
-        if (!db.Roles.Any())
-        {
-            db.Roles.AddRange(
-                new InternLog.API.Infrastructure.Data.Models.Role { RoleName = "student" },
-                new InternLog.API.Infrastructure.Data.Models.Role { RoleName = "advisor" },
-                new InternLog.API.Infrastructure.Data.Models.Role { RoleName = "admin" }
-            );
-            db.SaveChanges();
-            Console.WriteLine("✅ Seed Roles สำเร็จ");
-        }
-
-        // Seed Users
-        if (!db.Users.Any(u => u.Email == "student@test.com"))
-        {
-            var testPasswordHash = InternLog.API.Core.Security.PasswordHasher.Hash("Test@1234");
-            db.Users.AddRange(
-                new InternLog.API.Infrastructure.Data.Models.User { RoleID = 1, Email = "student@test.com", PasswordHash = testPasswordHash, FirstName = "สมชาย", LastName = "ใจดี", StudentID = "6501001", IsActive = true, CreatedAt = DateTime.Now },
-                new InternLog.API.Infrastructure.Data.Models.User { RoleID = 2, Email = "advisor@test.com", PasswordHash = testPasswordHash, FirstName = "สมหญิง", LastName = "รักเรียน", IsActive = true, CreatedAt = DateTime.Now },
-                new InternLog.API.Infrastructure.Data.Models.User { RoleID = 4, Email = "admin@test.com", PasswordHash = testPasswordHash, FirstName = "ผู้ดูแล", LastName = "ระบบ", IsActive = true, CreatedAt = DateTime.Now }
-            );
-            db.SaveChanges();
-            Console.WriteLine("✅ Seed Users สำเร็จ");
-        }
-
-        // Seed Companies
-        if (!db.Companies.Any())
-        {
-            db.Companies.AddRange(
-                new InternLog.API.Infrastructure.Data.Models.Company { CompanyName = "บริษัท ทดสอบ ABC", Address = "123 ถ.ทดสอบ กทม.", Phone = "02-123-4567", WorkStartTime = new TimeOnly(9,0,0), WorkEndTime = new TimeOnly(18,0,0) },
-                new InternLog.API.Infrastructure.Data.Models.Company { CompanyName = "บริษัท ทดสอบ XYZ", Address = "456 ถ.ตัวอย่าง กทม.", Phone = "02-765-4321", WorkStartTime = new TimeOnly(8,30,0), WorkEndTime = new TimeOnly(17,30,0) }
-            );
-            db.SaveChanges();
-            Console.WriteLine("✅ Seed Companies สำเร็จ");
-        }
-
-        // Seed TrainingPeriods
-        if (!db.TrainingPeriods.Any())
-        {
-            db.TrainingPeriods.Add(
-                new InternLog.API.Infrastructure.Data.Models.TrainingPeriod { PeriodName = "ภาคเรียนที่ 1/2569", StartDate = new DateOnly(2026, 6, 1), EndDate = new DateOnly(2026, 8, 31), IsActive = true }
-            );
-            db.SaveChanges();
-            Console.WriteLine("✅ Seed TrainingPeriods สำเร็จ");
-        }
-
-        // Seed Internships
-        if (!db.Internships.Any())
-        {
-            var student = db.Users.FirstOrDefault(u => u.Email == "student@test.com");
-            var advisor = db.Users.FirstOrDefault(u => u.Email == "advisor@test.com");
-            var company = db.Companies.FirstOrDefault();
-            var period = db.TrainingPeriods.FirstOrDefault();
-
-            if (student != null && advisor != null && company != null && period != null)
-            {
-                db.Internships.Add(new InternLog.API.Infrastructure.Data.Models.Internship 
-                {
-                    StudentID = student.UserID,
-                    AdvisorID = advisor.UserID,
-                    CompanyID = company.CompanyID,
-                    PeriodID = period.PeriodID,
-                    Status = "active"
-                });
-                db.SaveChanges();
-                Console.WriteLine("✅ Seed Internships สำเร็จ");
-            }
-        }
+        // ข้อมูลทดสอบ (ผู้ใช้ทดสอบ, บริษัท, ช่วงฝึกงาน, internship) — ดู DevDataSeeder
+        DevDataSeeder.Seed(db, app.Logger);
     }
     catch (Exception ex)
     {

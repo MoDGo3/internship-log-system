@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using InternLog.API.Modules.Dashboard.DTOs;
 using InternLog.API.Core.Interfaces;
 using InternLog.API.Infrastructure.Data;
+using InternLog.API.Core.Common;
 
 namespace InternLog.API.Modules.Dashboard;
 
@@ -29,25 +30,29 @@ public class DashboardService : IDashboardService
         int unreadMessages = 0;
         int unreadNotifications = await _context.Notifications.CountAsync(n => n.UserID == userId && !n.IsRead);
 
-        if (role == "student")
+        if (role == Constants.Roles.Student)
         {
             totalInternships = await _context.Internships.CountAsync(i => i.StudentID == userId);
-            activeInternships = await _context.Internships.CountAsync(i => i.StudentID == userId && i.EndDate >= DateOnly.FromDateTime(DateTime.Today));
+            activeInternships = await _context.Internships.CountAsync(i => i.StudentID == userId && i.EndDate >= AppClock.Today && i.Status.ToLower() == "active");
             
             pendingLeaves = await _context.Leaves.CountAsync(l => l.StudentID == userId && l.Status == "pending");
             pendingReports = await _context.Reports.CountAsync(r => r.Internship.StudentID == userId && (r.Status == "draft" || r.Status == "returned"));
         }
-        else if (role == "advisor")
+        else if (role == Constants.Roles.Advisor)
         {
             totalInternships = await _context.Internships.CountAsync(i => i.AdvisorID == userId);
-            activeInternships = await _context.Internships.CountAsync(i => i.AdvisorID == userId && i.EndDate >= DateOnly.FromDateTime(DateTime.Today));
+            activeInternships = await _context.Internships.CountAsync(i => i.AdvisorID == userId && i.EndDate >= AppClock.Today && i.Status.ToLower() == "active");
             
             pendingReports = await _context.Reports.CountAsync(r => r.Internship.AdvisorID == userId && r.Status == "submitted");
+            // ใบลาที่รออาจารย์อนุมัติ (เฉพาะนักศึกษาที่ตนดูแล)
+            pendingLeaves = await _context.Leaves.CountAsync(l => l.Internship.AdvisorID == userId && l.Status == "pending");
         }
-        else if (role == "admin")
+        else if (role == Constants.Roles.Admin)
         {
             totalInternships = await _context.Internships.CountAsync();
-            activeInternships = await _context.Internships.CountAsync(i => i.EndDate >= DateOnly.FromDateTime(DateTime.Today));
+            activeInternships = await _context.Internships.CountAsync(i => i.EndDate >= AppClock.Today && i.Status.ToLower() == "active");
+            pendingLeaves = await _context.Leaves.CountAsync(l => l.Status == "pending");
+            pendingReports = await _context.Reports.CountAsync(r => r.Status == "submitted");
         }
 
         return new DashboardSummaryDto(
@@ -67,7 +72,7 @@ public class DashboardService : IDashboardService
         var role = _currentUser.Role;
 
         // ดึงเฉพาะของนักศึกษา (ถ้าเป็น role อื่นให้คืนค่าว่างไปก่อน หรือส่ง user id มาเพิ่มในอนาคต)
-        if (role != "student")
+        if (role != Constants.Roles.Student)
         {
             return Enumerable.Empty<CalendarDayDto>();
         }
@@ -84,7 +89,7 @@ public class DashboardService : IDashboardService
             .ToListAsync();
 
         var result = new List<CalendarDayDto>();
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var today = AppClock.Today;
 
         for (int day = 1; day <= endDate.Day; day++)
         {

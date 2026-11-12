@@ -68,7 +68,7 @@ public class AdminService : IAdminService
             Phone = request.Phone,
             StudentID = request.StudentCode,
             IsActive = true,
-            CreatedAt = DateTime.Now
+            CreatedAt = AppClock.Now
         };
 
         _context.Users.Add(user);
@@ -189,7 +189,7 @@ public class AdminService : IAdminService
         // ตรวจสอบว่า Student ยังไม่มีการฝึกงานที่ Active
         bool active = await _context.Internships.AnyAsync(i =>
             i.StudentID == request.StudentID &&
-            i.EndDate >= DateOnly.FromDateTime(DateTime.Today));
+            i.EndDate >= AppClock.Today);
         if (active)
             throw AppException.BadRequest("นักศึกษานี้มีการฝึกงานที่ยังไม่สิ้นสุดอยู่แล้ว");
 

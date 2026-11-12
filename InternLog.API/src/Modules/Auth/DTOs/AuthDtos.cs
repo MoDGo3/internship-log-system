@@ -19,10 +19,6 @@ public record RegisterRequest(
     string Role = "student"   // default = student
 );
 
-public record RefreshRequest(
-    [Required] string RefreshToken
-);
-
 public record ChangePasswordRequest(
     [Required] string OldPassword,
     [Required][MinLength(8)] string NewPassword,
@@ -57,8 +53,15 @@ public record UserDto(
     string? ProfileImage
 );
 
+/// <summary>ผลลัพธ์ภายใน AuthService — RefreshToken ถูกส่งให้ browser ผ่าน httpOnly cookie เท่านั้น</summary>
 public record LoginResponse(
     string  AccessToken,
     string  RefreshToken,
+    UserDto User
+);
+
+/// <summary>Response body ที่ส่งให้ client (ไม่มี refresh token)</summary>
+public record AuthResponse(
+    string  AccessToken,
     UserDto User
 );
